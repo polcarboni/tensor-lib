@@ -1,0 +1,11 @@
+Checks: '-*,
+        bugprone-*,
+        cppcoreguidelines-*,
+        modernize-*,
+        performance-*,
+        readability-*'
+        #modernize-use-trailing-return-type' Optional: many find this annoying
+WarningsAsErrors: 'bugprone-*,modernize-use-override'
+CheckOptions:
+  - key:             modernize-use-auto.MinTypeNameLength
+    value:           '5'
