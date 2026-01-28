@@ -1,5 +1,0 @@
-add_test( [==[Static FActories (Seros and Ones)]==] /home/pol_carboni/cpp_ai/build/tests/core/unit_tests [==[Static FActories (Seros and Ones)]==]  )
-set_tests_properties( [==[Static FActories (Seros and Ones)]==] PROPERTIES WORKING_DIRECTORY /home/pol_carboni/cpp_ai/build/tests/core LABELS unit SKIP_RETURN_CODE 4)
-add_test( [==[Tensor construction]==] /home/pol_carboni/cpp_ai/build/tests/core/unit_tests [==[Tensor construction]==]  )
-set_tests_properties( [==[Tensor construction]==] PROPERTIES WORKING_DIRECTORY /home/pol_carboni/cpp_ai/build/tests/core LABELS unit SKIP_RETURN_CODE 4)
-set( unit_tests_TESTS [==[Static FActories (Seros and Ones)]==] [==[Tensor construction]==])
