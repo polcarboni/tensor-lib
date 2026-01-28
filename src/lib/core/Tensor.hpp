@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <type_traits>
+#include <functional>  //std::function<void()> backward_op_ = nullptr;
 
 namespace tensor {
 
@@ -19,7 +20,7 @@ namespace tensor {
 
     private:
         std::shared_ptr<T[]> data_;             // Elements contained in the tensor
-        std::vector<size_t> shape_;             // Tensor shape
+        std::vector<size_t> shape_;             // Tensor shape  {batch, depth, rows, cols}
         std::vector<size_t> strides_;           // Tensor strides for element access
         size_t total_size_;                     // Total numbers of elements in the tensor
         
@@ -48,6 +49,20 @@ namespace tensor {
             total_size_ = strides_[0] * shape_[0];
         }
 
+        // ------------------------------------------------------------------------------------------------------
+        //                                            AUTOGRAD MEMBERS 
+        // ------------------------------------------------------------------------------------------------------ 
+        //
+        // The grad tensor must have the same shape of the tensor.
+        // TODO: basic 
+        // 
+
+        std::shared_ptr<Tensor<T>> grad_;    // store the gradients
+        bool requires_grad_ = false;         // grad activation flag
+        std::vector<Tensor<T>> parents_;     // Track parent nodes (that created the node)
+        std::function<void()> backward_op_ = nullptr;   //stores the backward operation
+        size_t version_ = 0;
+    
     public:
 
         // ------------------------------------------------------------------------------------------------------
@@ -359,9 +374,6 @@ namespace tensor {
         {
             return !(*this == other);
         }
-
-
-
         
         // TODO: check the contiguity of the tensor before implementing view
         //        (might be broken by some other member function)
@@ -423,6 +435,25 @@ namespace tensor {
             }
             std::cout << std::endl;
         }
+
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                         AUTOGRAD CORE FUNCTIONS
+        // ------------------------------------------------------------------------------------------------------ 
+
+        bool requires_grad() const { return requires_grad_; }
+
+        void set_requires_grad(bool req)
+        {
+            requires_grad_ = req;
+            if(req && !grad_)
+            {
+                grad_ = std::make_shared<Tensor<T>>(shape_, T{0});
+            }
+        }
+
+        // ...
+        
     };
 
     inline size_t shape_length(const std::vector<size_t>& shape)
