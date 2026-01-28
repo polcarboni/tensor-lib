@@ -15,4 +15,12 @@ https://www.youtube.com/watch?v=VMj-3S1tku0
 
 Remember to implement no-grad mode (global flag or a scope guard).
 
+--------------------------------------------------------------------
+
+This file should define the 'Node' base class, with specific subclasses
+for each operation.
+(while the tensor.hpp class also need:
+    - to store node for its history,  grad_fn = std::shared_ptr<Node>
+    - grad: accumulated derivative
+    - requires_grad: flag for activation
 */
