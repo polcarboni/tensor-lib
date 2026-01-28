@@ -37,6 +37,7 @@ namespace tensor
         //TODO-fix: start from empty tensor of the correct shape
         Tensor<T> result = a;
 
+        //TODO: add call for parallel execution
         for (size_t i = 0; i < a.size(); ++i)
         {
             result[i] = op(a[i], b[i]);
@@ -90,37 +91,88 @@ namespace tensor
     template <typename T>
     Tensor<T> matmul_2D(const Tensor<T>& a, const Tensor<T>& b)
     {
+        if (a.shape_.size() != 2 || b.shape_.size() != 2)
+        {
+            throw std::runtime_error("Matmul 2D only supprts 2D tensors");
+        }
 
+        auto rows_a = a.shape()[0];
+        auto cols_a = a.shape()[1];
+        auto rows_b = b.shape()[0];
+        auto cols_b = b.shape()[1];
+
+        // cols_a != rows_b
+        if (cols_a != rows_b)
+        {
+            std::cerr << "ROWS A: " << rows_a << " - COLS B: " << cols_b;
+            throw std::runtime_error("Incompatible shapes");
+        }
+
+        auto out = tensor::zeros<T>(rows_a, cols_b);
+        
+        //TODO-fix: inefficient implementation (call here a helper function instead)
+        for (size_t i = 0; i < rows_a; ++i) {
+            for (size_t j = 0; j < cols_b; ++j) {
+                T sum = 0;
+                for (size_t k = 0; k < cols_a; ++k) {
+                    sum += a(i,k) * b(k,j);
+                }
+                out(i,j) = sum;
+            }
+        }
+        return out;
     }
 
-    /*  COPIED FROM AI - just as a note
-    // Normal version: returns a new tensor
-    template <typename T>
-    Tensor<T> matmul(const Tensor<T>& a, const Tensor<T>& b) {
-        // Check shapes: a.cols must equal b.rows
-        Tensor<T> result(a.rows(), b.cols());
-        matmul_to(a, b, result); // Call the worker function
+    //TODO: implementation of N-size tensor multiplication
+    //TODO: dispatcher implementation (simply call matmul on any size)
+
+
+    // ------------------------------------------------------------------------------------------------------
+    //                                       UNARY OPERATIONS 
+    // ------------------------------------------------------------------------------------------------------ 
+
+    //UNARY MAPPER
+    //TODO-fix: I do not like the name
+    template<typename T, typename Op>
+    Tensor<T> map(const Tensor<T>&a, Op op)
+    {
+        Tensor<T> result(a.shape());
+
+        //TODO: add call for parallel application
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            result[i] = op(a[i]);
+        }
         return result;
     }
 
-    // Performance version: uses a pre-allocated result tensor
-    template <typename T>
-    void matmul_to(const Tensor<T>& a, const Tensor<T>& b, Tensor<T>& result) {
-        if (a.cols() != b.rows()) throw std::invalid_argument("Incompatible shapes");
-        
-        // High-performance nested loops or BLAS call here
-        for (size_t i = 0; i < a.rows(); ++i) {
-            for (size_t j = 0; j < b.cols(); ++j) {
-                T sum = 0;
-                for (size_t k = 0; k < a.cols(); ++k) {
-                    sum += a(i, k) * b(k, j);
-                }
-                result(i, j) = sum;
-            }
+    template<typename T, typename Op>
+    Tensor<T> map_inplace(const Tensor<T>&a, Op op)
+    {
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            a[i] = func(a[i]);
         }
     }
-    */
 
+    // ------------------------------------------------------------------------------------------------------
+    //                                       ACTIVATION FUNCTIONS
+    // ------------------------------------------------------------------------------------------------------ 
+
+    template <typename T>
+    Tensor<T> ReLU(const Tensor<T>& a)
+    {
+        return map(a, [](T x) { return x > 0 ? x : T{0}});
+    }
+
+    template <typename T>
+    Tensor<T> sigmoid(const Tensor<T>& a)
+    {
+        return map(a, [](T x) { return std::tanh(x); });
+    }
+
+    //TODO: implement the other activation functions
+    //TODO-fix: add call to efficient parallel execution
 
     // ------------------------------------------------------------------------------------------------------
     //                                        REDUCTION OPERATIONS
