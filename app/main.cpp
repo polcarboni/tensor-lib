@@ -1,8 +1,8 @@
 #include "Tensor.hpp"
 #include "Operations.hpp"
 
-#include "Linear.hpp"
-#include "Module.hpp"
+// #include "Linear.hpp"
+// #include "Module.hpp"
 using namespace tensor; 
 
 int main()
@@ -28,28 +28,39 @@ int main()
     Tensor<float> result = tensor::element_wise(op1, op2, std::plus<float>{});
     Tensor<float> result_2 = op1 + op2;
     Tensor<float> result_3 = op1 - op2;
-    result.print();
-    std::cout << "\n";
-    result_3.print();
+    // result.print();
+    // std::cout << "\n";
+    // result_3.print();
 
-
+    std::cout << result_2 << std::endl;
+    std::cout << result_3 << std::endl;
 
     // Simple network
-    tensor::Linear<float> fc1(784,128);
-    tensor::Linear<float> fc2(128,10);
+    // tensor::Linear<float> fc1(784,128);
+    // tensor::Linear<float> fc2(128,10);
 
 
     // ----------------------- Neuron example -----------------------
+    std::cout << "---- Neuron example ----" << std::endl;
     tensor::Tensor<float> input({1,10}, 1.0f);
     tensor::Tensor<float> weights({10,1}, 0.5f);
-    tensor::Tensor<float> bias({1,1}, 0.1f);
+    tensor::Tensor<float> bias({1,1}, -11.0f);
+
+    std::cout << "Input values:\n" << input << std::endl;
+    std::cout << "Weights:\n" << weights << std::endl;
+    std::cout << "Bias:\n" << bias << std::endl;
 
     // Matrix multiplication computation
     Tensor<float> weighted_sum = tensor::matmul_2D(input, weights);
     Tensor<float> z = weighted_sum + bias;
 
-    // Activation RELU function application
+    std::cout << "Weighted sum:\n" << weighted_sum << std::endl;
+    std::cout << "Weighted sum + bias:\n" << z << std::endl;
+
+
+    // Activation ReLU function application
     Tensor<float> output = tensor::ReLU(z);
     
+    std::cout << "Output:\n" << output << std::endl;
     return 0;
 };

@@ -2,7 +2,7 @@
     OPERATIONS TO BE IMPLEMENTED:
     - Matmul   (BINARY)
     - Element-wise: add, subtract, multiply, divide  (BINARY)
-    
+    - Reductions: sum, mean, max, min    (UNARY)  global/to axis
     - Dot product (BINARY) ?: flatten matrix and compute dot-product (Y, forbenius innermost product: reduction + vector dot product)
     - Broadcasting  (N-ARY helper)
     - Batch Matrix multiplication FOR DL batch processing (BINARY)
@@ -10,12 +10,16 @@
     - Matrix decomposition: LU, QR, SVD, Cholesky (UNARY)
     - Eigenvalue decomposition: Spectral, analysis, PCA (UNARY)
     - Determinant, inverse, trace (UNARY)
+    
 
     (The list might not be 100% correct)
 */
 
 #pragma once
 #include "Tensor.hpp"
+#include <cmath>
+#include <algorithm>
+// #include <execution>
 
 namespace tensor 
 {
@@ -30,12 +34,12 @@ namespace tensor
     {
         if (a.shape() != b.shape())
         {
-            //TODO: more informative error message (requires shape_to_string method)
-            throw std::invalid_argument("Tensor shape mismatch");
+            throw std::invalid_argument("Tensor shape mismatch:" +
+                                        shape_to_string(a.shape()) +
+                                        " - " + shape_to_string(b.shape()));
         }
 
-        //TODO-fix: start from empty tensor of the correct shape
-        Tensor<T> result = a;
+        Tensor<T> result(a.shape());
 
         //TODO: add call for parallel execution
         for (size_t i = 0; i < a.size(); ++i)
@@ -71,10 +75,29 @@ namespace tensor
     }
 
 
-    // ------------------ INPLACE ELEMENT-WISE OPERATIONS ------------------
+    // --------------------------------- INPLACE ELEMENT-WISE OPERATIONS  -----------------------------------
     // +=, -=, *=, /=
     // ... also require a generic element_wise_inplace base function ...
 
+    template <typename T, typename Op>
+    void element_wise_inplace(Tensor<T>& a, const Tensor<T>&b, Op op)
+    {
+        if(a.shape() != b.shape()) {
+            throw std::invalid_argument(
+                "Tensor shape mismatch for += operation: " +
+                shape_to_string(a.shape()) + " - " + shape_to_string(b.shape())
+            );
+        }
+
+        for (size_t i = 0; i < a.size(); ++i) {
+            a[i] = op(a[i], b[i]);
+        }
+    } 
+
+    template <typename T>
+    Tensor<T>& Tensor<T>::operator+=(const Tensor<T>& other) {
+        element_wise_inplace(*this, other, std::plus<T>());
+    }
 
     // ------------------------------------------------------------------------------------------------------
     //                                        MATRIX MULTIPLICATION
@@ -91,7 +114,7 @@ namespace tensor
     template <typename T>
     Tensor<T> matmul_2D(const Tensor<T>& a, const Tensor<T>& b)
     {
-        if (a.shape_.size() != 2 || b.shape_.size() != 2)
+        if (a.shape().size() != 2 || b.shape().size() != 2)
         {
             throw std::runtime_error("Matmul 2D only supprts 2D tensors");
         }
@@ -108,7 +131,7 @@ namespace tensor
             throw std::runtime_error("Incompatible shapes");
         }
 
-        auto out = tensor::zeros<T>(rows_a, cols_b);
+        auto out = zeros<T>(rows_a, cols_b);
         
         //TODO-fix: inefficient implementation (call here a helper function instead)
         for (size_t i = 0; i < rows_a; ++i) {
@@ -146,13 +169,29 @@ namespace tensor
         return result;
     }
 
-    template<typename T, typename Op>
-    Tensor<T> map_inplace(const Tensor<T>&a, Op op)
-    {
-        for (size_t i = 0; i < a.size(); ++i)
-        {
-            a[i] = func(a[i]);
-        }
+    //TODO-remove(?): inplace but not member function (not good API)
+    // template<typename T, typename Op>
+    // Tensor<T> map_inplace(const Tensor<T>&a, Op op)
+    // {
+    //     for (size_t i = 0; i < a.size(); ++i)
+    //     {
+    //         a[i] = func(a[i]);
+    //     }
+    // }
+
+    template <typename T>
+    template <typename Op>
+    Tensor<T>& Tensor<T>::map_inplace(Op op) {
+        T* ptr = this->data();
+
+        std::transform(//std::execution::par,
+                       ptr, ptr + this->total_size_,
+                       ptr,
+                       op);
+        
+        // Increase version for backpropagation
+        this->version_++;
+        return *this;
     }
 
     // ------------------------------------------------------------------------------------------------------
@@ -162,7 +201,7 @@ namespace tensor
     template <typename T>
     Tensor<T> ReLU(const Tensor<T>& a)
     {
-        return map(a, [](T x) { return x > 0 ? x : T{0}});
+        return map(a, [](T x) { return x > 0 ? x : T{0}; });
     }
 
     template <typename T>
@@ -174,96 +213,22 @@ namespace tensor
     //TODO: implement the other activation functions
     //TODO-fix: add call to efficient parallel execution
 
-    // ------------------------------------------------------------------------------------------------------
-    //                                        REDUCTION OPERATIONS
-    // ------------------------------------------------------------------------------------------------------ 
-    // - Reductions: sum, mean, max, min    (UNARY)
+
+    // ------------------------------------ INPLACE ACTIVATION FUNCTIONS ------------------------------------
+
+    //TODO-fix (in Tensor.hpp): add the function declarations in the file and implement here the logic
+    //                          include this file at the end of Tensor.hpp
+
+    template <typename T>
+    Tensor<T>& Tensor<T>::ReLU() {
+        return this->map_inplace([](T x) { return x > 0 ? x : T{0}; });
+    }
 
 
-    // Global reduction vs axis reduction (global if axis not provided))
-    
-    /*  TOTAL REDUCTION OPERATIONS - AI generated
-                
-                template<typename T>
-            T sum(const Tensor<T>& t) {
-                if (t.size() == 0) return T{0};
-                return std::accumulate(t.data(), t.data() + t.size(), T{0});
-            }
+    // template<typename T>
+    // void ReLU_inplace(Tensor<T>& a)
+    // {
+    //     map_inplace(a, [](T x){ return x > 0 ? x : 0; })
+    // }
 
-            template<typename T>
-            T max(const Tensor<T>& t) {
-                if (t.size() == 0) throw std::runtime_error("Reduction on empty tensor");
-                return *std::max_element(t.data(), t.data() + t.size());
-            }
-
-            template<typename T>
-            T min(const Tensor<T>& t) {
-                if (t.size() == 0) throw std::runtime_error("Reduction on empty tensor");
-                return *std::min_element(t.data(), t.data() + t.size());
-            }
-
-            template<typename T>
-            double mean(const Tensor<T>& t) {
-                if (t.size() == 0) return 0.0;
-                return static_cast<double>(sum(t)) / t.size();
-            }
-    */
-
-
-    /*  AXIS_WISE REDUCTIONS  - AI generated
-
-                template<typename T>
-            Tensor<T> sum(const Tensor<T>& t, size_t axis) {
-                const auto& old_shape = t.shape();
-                if (axis >= old_shape.size()) throw std::out_of_range("Axis out of bounds");
-
-                // 1. Compute new shape (remove the dimension at 'axis')
-                std::vector<size_t> new_shape;
-                for (size_t i = 0; i < old_shape.size(); ++i) {
-                    if (i != axis) new_shape.push_back(old_shape[i]);
-                }
-                
-                // Handle case where we reduce a 1D tensor to a scalar (0D tensor)
-                if (new_shape.empty()) return Tensor<T>::zeros({1}); 
-
-                Tensor<T> result(new_shape, T{0});
-                const auto& old_strides = t.strides();
-                const auto& new_strides = result.strides();
-
-                // 2. Iterate through all elements of the original tensor
-                for (size_t i = 0; i < t.size(); ++i) {
-                    // Convert flat index 'i' to multi-index of output tensor
-                    size_t remaining_flat_idx = 0;
-                    size_t temp_idx = i;
-                    
-                    size_t out_dim_count = 0;
-                    for (size_t d = 0; d < old_shape.size(); ++d) {
-                        size_t coord = (temp_idx / old_strides[d]);
-                        temp_idx %= old_strides[d];
-                        
-                        if (d != axis) {
-                            remaining_flat_idx += coord * new_strides[out_dim_count++];
-                        }
-                    }
-                    result[remaining_flat_idx] += t[i];
-                }
-
-                return result;
-            }
-
-            template<typename T>
-            Tensor<double> mean(const Tensor<T>& t, size_t axis) {
-                auto s = sum(t, axis);
-                size_t divisor = t.shape()[axis];
-                
-                // Create a double tensor for result
-                std::vector<size_t> res_shape = s.shape();
-                Tensor<double> res(res_shape);
-                for(size_t i = 0; i < s.size(); ++i) {
-                    res[i] = static_cast<double>(s[i]) / divisor;
-                }
-                return res;
-            }
-    
-    */
-};
+} // namespace tensor

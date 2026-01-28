@@ -19,14 +19,34 @@ namespace tensor {
         static_assert(std::is_arithmetic<T>::value, "Tensor class requires a numeric type (integral or floating-point)");
 
     private:
+        //TODO: adding data members requires updating the functions 
         std::shared_ptr<T[]> data_;             // Elements contained in the tensor
         std::vector<size_t> shape_;             // Tensor shape  {batch, depth, rows, cols}
         std::vector<size_t> strides_;           // Tensor strides for element access
         size_t total_size_;                     // Total numbers of elements in the tensor
         
-        //TODO: adding data members requires updating the functions 
-        // size_t offset = 0;              // CAN BE USEFUL BUT FOR WHAT?
+        size_t offset_ = 0;                      // For slicing (and what?)
 
+        // ------------------------------------------------------------------------------------------------------
+        //                                            AUTOGRAD MEMBERS 
+        // ------------------------------------------------------------------------------------------------------ 
+        //
+        // The grad tensor must have the same shape of the tensor.
+        // TODO: basic 
+        // 
+
+        std::shared_ptr<Tensor<T>> grad_;    // store the gradients
+        bool requires_grad_ = false;         // grad activation flag
+        std::vector<Tensor<T>> parents_;     // Track parent nodes (that created the node)
+        std::function<void()> backward_op_ = nullptr;   //stores the backward operation
+        uint32_t version_ = 0;
+
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                            PRIVATE FUNCTIONS 
+        // ------------------------------------------------------------------------------------------------------ 
+        // 
+    
         //Computes strides and total size from the shape
         void compute_strides()
         {
@@ -49,20 +69,33 @@ namespace tensor {
             total_size_ = strides_[0] * shape_[0];
         }
 
-        // ------------------------------------------------------------------------------------------------------
-        //                                            AUTOGRAD MEMBERS 
-        // ------------------------------------------------------------------------------------------------------ 
-        //
-        // The grad tensor must have the same shape of the tensor.
-        // TODO: basic 
-        // 
 
-        std::shared_ptr<Tensor<T>> grad_;    // store the gradients
-        bool requires_grad_ = false;         // grad activation flag
-        std::vector<Tensor<T>> parents_;     // Track parent nodes (that created the node)
-        std::function<void()> backward_op_ = nullptr;   //stores the backward operation
-        size_t version_ = 0;
-    
+        void print_recursive(std::ostream& os, size_t dim, size_t offset) const 
+        {
+            if (dim == shape_.size() - 1) {
+                os << "[";
+                for (size_t i = 0; i < shape_[dim]; ++i) {
+                    os << data_[offset + i * strides_[dim]];
+                    if (i < shape_[dim] - 1)
+                        os << ", ";
+                }
+                os << "]";
+            } else {
+                os << "[";
+                for (size_t i = 0; i < shape_[dim]; ++i) {
+                    print_recursive(os, dim + 1, offset + i * strides_[dim]);
+                    
+                    if (i < shape_[dim] - 1) {
+                        os << "," << std::endl;
+
+                        // Indentation for multi-level
+                        os << std::string(dim + 8, ' ');
+                    }
+                }
+                os << "]";
+            }
+        }
+
     public:
 
         // ------------------------------------------------------------------------------------------------------
@@ -148,63 +181,6 @@ namespace tensor {
         // TODO: static generators like Tensor::zeros(shape), Tensor::one(shape), Tensor::eye(shape)
         // TODO: casting ?
 
-
-        // ------------------------------------------------------------------------------------------------------
-        //                                 STATIC GENERATORS (ZEROS, ONES, EYE) 
-        // ------------------------------------------------------------------------------------------------------ 
-        
-
-        // ----------------- TENSOR::ZEROS() ----------------- 
-
-        // Tensor::zeros({1,2}): zeros from shape vector
-        static Tensor zeros(const std::vector<size_t>& shape) {
-            return Tensor(shape, T{});
-        }
-
-        // Tensor::zeros(5): one-dimensional tensor
-        static Tensor zeros(size_t size)
-        {
-            return Tensor(std::vector<size_t>{size}, T{});
-        }
-        
-        //Tensor::zeros(2,3,4): using variadic arguments (no vector)
-        template <typename... Args>
-        static Tensor zeros(Args... dims)
-        {
-            return Tensor(std::vector<size_t>{static_cast<size_t>(dims)...}, T{});
-        }
-
-
-        // ----------------- TENSOR::ONES() ----------------- 
-
-        static Tensor ones(const std::vector<size_t>& shape)
-        {
-            return Tensor(shape, T{1});
-        }
-
-        static Tensor ones(size_t size)
-        {
-            return Tensor(std::vector<size_t>{size}, T{1});
-        }
-
-        template<typename... Args>
-        static Tensor ones(Args... dims)
-        {
-            return Tensor(std::vector<size_t>{static_cast<size_t>(dims)...}, T{1});
-        }
-
-        // ----------------- TENSOR::EYE() -----------------
-
-        static Tensor eye(const size_t n)
-        {
-            Tensor result({n,n}, T{0});
-            for (size_t i = 0; i < n; ++i)
-            {
-                result(i,i) = T{1};
-            }
-            return result;
-        }
-
         //TODO (why): rectangular identity matrix from shape (x,y) and from {x,y}
 
         // ----------------- GETTERS ----------------- 
@@ -287,6 +263,25 @@ namespace tensor {
         // Indexing: Tensor(3,2)
         template<typename... Args>
         T& operator()(Args... dims)
+        {
+            static_assert(sizeof...(Args) > 0, "Must provide indices.");
+            size_t indices[] = { static_cast<size_t>(dims)... };
+
+            if (sizeof...(Args) != shape_.size())
+            {
+                throw std::runtime_error("Index dimension mismatch");
+            }
+
+            size_t flat_idx = 0;
+            for (size_t i = 0; i < sizeof...(Args); ++i)
+            {
+                flat_idx += indices[i] * strides_[i];
+            }
+            return data_[flat_idx];
+        }
+
+        template<typename... Args>
+        const T& operator()(Args... dims) const
         {
             static_assert(sizeof...(Args) > 0, "Must provide indices.");
             size_t indices[] = { static_cast<size_t>(dims)... };
@@ -420,23 +415,54 @@ namespace tensor {
         // ----------------- PRINT/VISUAL ----------------- 
 
         // TODO-fix: flat print(), modify for a better result
-        void print() const
-        {
-            // TODO: Think about how you want to print the dimensions
-            std::cout << "Tensor(shape={";
-            for(size_t i=0; i < shape_.size(); ++i) 
-                std::cout << shape_[i] << (i == shape_.size()-1 ? "" : ", ");
-            std::cout << "})  ";
+        // void print() const
+        // {
+        //     // TODO: Think about how you want to print the dimensions
+        //     std::cout << "Tensor(shape={";
+        //     for(size_t i=0; i < shape_.size(); ++i) 
+        //         std::cout << shape_[i] << (i == shape_.size()-1 ? "" : ", ");
+        //     std::cout << "})  ";
             
-            // Note: Simple flat print. For deep learning, you'll want 
-            // a more sophisticated nested loop print for matrices.
-            for (size_t i = 0; i < total_size_; ++i) {
-                std::cout << data_[i] << " ";
+        //     // Note: Simple flat print. For deep learning, you'll want 
+        //     // a more sophisticated nested loop print for matrices.
+        //     for (size_t i = 0; i < total_size_; ++i) {
+        //         std::cout << data_[i] << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+
+        //TODO-?: can this be used without specifying the parameter
+        void print(std::ostream& os = std::cout) const {
+            
+            // Empty tensor
+            if (total_size_ == 0 || !data_) {
+                os << "Tensor([])" << std::endl;
+                return;
             }
-            std::cout << std::endl;
+
+            os << "Tensor(";
+            if (shape_.empty()) { 
+                os << data_[0]; // Scalar value  
+            } else {
+                print_recursive(os, 0, 0);
+            }
+
+            os << ", shape=";
+            os << shape_to_string(shape_);
+            // for (size_t i = 0; i < shape_.size(); ++i) {
+            //     os << shape_[i] << (i == shape_.size() - 1 ? "" : ", ");
+            // }
+
+            //TODO: mangled typename (sinlge letter) with GCC/CLANG, requires helper function <typeinfo>
+            os << ", dtype=" << typeid(T).name() << ")\n";
         }
 
-
+        //Operator overload
+        friend std::ostream& operator<<(std::ostream& os, const Tensor<T>& t)
+        {
+            t.print(os);
+            return os;
+        }
         // ------------------------------------------------------------------------------------------------------
         //                                         AUTOGRAD CORE FUNCTIONS
         // ------------------------------------------------------------------------------------------------------ 
@@ -453,9 +479,35 @@ namespace tensor {
         }
 
         // ...
+       
+
+        // Headers for member functions
         
+        // ------------------- Member declarations -------------------
+        Tensor<T>& ReLU(); 
+        
+        template <typename Op>
+        Tensor<T>& map_inplace(Op op);
+        
+        template <typename Op>
+        friend Tensor<T>& map_inplace(Op op);
+
+        Tensor<T>& operator+=(const Tensor<T>& other);
+
+        // ------------------- Friend declarations -------------------
+
+        template <typename U>
+        friend Tensor<U> matmul_2D(const Tensor<U>& a, const Tensor<U>& b);
+        
+        template <typename U>
+        friend Tensor<U> ReLU(const Tensor<U>& a);
+
+        template <typename U>
+        friend Tensor<U>& sigmoid(); 
     };
 
+
+    //TODO-?: for view implementation?
     inline size_t shape_length(const std::vector<size_t>& shape)
     {
         return std::accumulate(
@@ -464,4 +516,83 @@ namespace tensor {
             std::multiplies<size_t>()
         );
     }
+
+    // ------------------------------------------------------------------------------------------------------
+    //                                         PRINTING UTILITIES
+    // ------------------------------------------------------------------------------------------------------ 
+
+    std::string shape_to_string(const std::vector<size_t>& shape)
+    {
+        std::stringstream ss;
+        ss << "[";
+        for (size_t i = 0; i < shape.size(); ++i) {
+            ss << shape[i] << (i == shape.size() - 1 ? "" : ", ");
+        }
+        ss << "]";
+        return ss.str();
+    }
+
+
+    // ------------------------------------------------------------------------------------------------------
+    //                                 STATIC GENERATORS (ZEROS, ONES, EYE) 
+    // ------------------------------------------------------------------------------------------------------ 
+    
+
+    // ----------------- TENSOR::ZEROS() ----------------- 
+
+    // Tensor::zeros({1,2}): zeros from shape vector
+    template <typename T>
+    Tensor<T> zeros(const std::vector<size_t>& shape) {
+        return Tensor(shape, T{});
+    }
+
+    // Tensor::zeros(5): one-dimensional tensor
+    template <typename T>
+    Tensor<T> zeros(size_t size)
+    {
+        return Tensor(std::vector<size_t>{size}, T{});
+    }
+    
+    //Tensor::zeros(2,3,4): using variadic arguments (no vector)
+    template <typename T, typename... Args>
+    Tensor<T> zeros(Args... dims)
+    {
+        return Tensor(std::vector<size_t>{static_cast<size_t>(dims)...}, T{});
+    }
+
+
+    // ----------------- TENSOR::ONES() ----------------- 
+    template <typename T>
+    Tensor<T> ones(const std::vector<size_t>& shape)
+    {
+        return Tensor(shape, T{1});
+    }
+
+    template <typename T>
+    Tensor<T> ones(size_t size)
+    {
+        return Tensor(std::vector<size_t>{size}, T{1});
+    }
+
+    template<typename T, typename... Args>
+    Tensor<T> ones(Args... dims)
+    {
+        return Tensor(std::vector<size_t>{static_cast<size_t>(dims)...}, T{1});
+    }
+
+    // ----------------- TENSOR::EYE() -----------------
+
+    template <typename T>
+    Tensor<T> eye(const size_t n)
+    {
+        Tensor result({n,n}, T{0});
+        for (size_t i = 0; i < n; ++i)
+        {
+            result(i,i) = T{1};
+        }
+        return result;
+    }
 }
+
+#include "Operations.hpp"
+#include "Autograd.hpp"
