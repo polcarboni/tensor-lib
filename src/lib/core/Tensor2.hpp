@@ -46,7 +46,7 @@ namespace tensor
 
 
 
-    
+
     // -------------------------------------------------------------------------------------------------------------  
     //                                                 TYPES/HELPERS 
     // -------------------------------------------------------------------------------------------------------------  
@@ -97,6 +97,21 @@ namespace tensor
     {
         return os << to_string(type);
     }
+
+    template<typename T>
+    inline constexpr ScalarType get_scalar_type() {
+        if constexpr (std::is_same_v<T, double>) return ScalarType::Float64;
+        else if constexpr (std::is_same_v<T, float>) return ScalarType::Float32;
+        else if constexpr (std::is_same_v<T, int64_t>) return ScalarType::Int64;
+        else if constexpr (std::is_same_v<T, long long>) return ScalarType::Int64;
+        else if constexpr (std::is_same_v<T, int32_t>) return ScalarType::Int32;
+        else if constexpr (std::is_same_v<T, int>) return ScalarType::Int32;
+        else if constexpr (std::is_same_v<T, bool>) return ScalarType::Bool;
+        else {
+            static_assert(sizeof(T) == 0, "Unsupported C++ Type for Tensor ScalarType mapping");
+        }
+    }
+
 
     // --------------------------------- DEVICE TYPE --------------------------------- 
 
@@ -239,7 +254,7 @@ namespace tensor
     /* 
         STORAGE CLASS 
 
-        Does not actually contains the data but manages its allocation
+        Does not actually contains the data but manages its allocation (constains a pointer to data)
         */
     class Storage
     {
@@ -281,7 +296,7 @@ namespace tensor
 
     public:
 
-        // Deep copy constructor
+        /* Uninitialized storage constructor (only allocates space) */
         Storage(size_t size_bytes, Device device)
             :  size_bytes_(size_bytes), device_(device)
         {
@@ -322,7 +337,7 @@ namespace tensor
                     #ifdef USE_CUDA
                         cudaError_t err = cudaMemcpy(data_, other.data_, size_bytes_, cudaMemcpyDeviceToDevice);
                         if(err != cudaSuccess) {
-                            throw std:::runtime:error(std::string("CUDA Memcpy DeviceToDevice failed: ") + cudaGetErrorString(err));
+                            throw std:::runtime_error(std::string("CUDA Memcpy DeviceToDevice failed: ") + cudaGetErrorString(err));
                         }
                     #endif
                 }
@@ -354,8 +369,8 @@ namespace tensor
                 } else {
                     data_ = nullptr;
                 }
-                return *this;
             }
+            return *this;
         }
 
         //  Move constructor
@@ -378,12 +393,16 @@ namespace tensor
             }
             return *this;
         }
+
+        Storage clone() const { return Storage(*this); }
   
+        // -------------------- ACCESSORS -------------------- 
+
         void* data() const { return data_; }
         size_t nbytes() const { return size_bytes_; }
         Device device() const { return device_; }
 
-        Storage clone() const { return Storage(*this); }
+        
     };
 
 
@@ -405,7 +424,6 @@ namespace tensor
         struct Impl;
         std::unique_ptr<Impl> pimpl_;
         Tensor(std::unique_ptr<Impl>);
-
     
     public:
         
@@ -414,13 +432,13 @@ namespace tensor
         Tensor();
         Tensor(const std::vector<size_t>&, ScalarType dtype, Device device);
         ~Tensor();
-
-        // Move constructor
-        Tensor(Tensor&&) noexcept = default;
+        Tensor(Tensor&&) noexcept = default;    // Move constructor
         Tensor& operator=(Tensor&&) noexcept = default;
-        // Copy constructor
-        Tensor(const Tensor& other);
+        Tensor(const Tensor& other);    // Copy constructor
         Tensor clone() const;
+
+        template<typename T>
+        Tensor::Tensor(const std::vector<size_t>&, const std::vector<T>&, Device device = {DeviceType::CPU, 0});
 
         // Accessors declarations
         const std::vector<size_t>& shape() const;
@@ -441,17 +459,18 @@ namespace tensor
     //                                        TENSOR IMPLEMENTATION CLASS
     // ------------------------------------------------------------------------------------------------------------- 
 
+    // TODO: constructor to pass values to the storage (non-null initialization of vector)
+
+
     struct Tensor::Impl
     {
         std::shared_ptr<Storage> storage_ = nullptr;
         ScalarType dtype_;
         Device device_;
-        
         size_t offset_ = 0;
         std::vector<size_t> shape_;
         std::vector<size_t> strides_;
         size_t total_size_ = 0;
-
         bool requires_grad_ = false;
         std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
@@ -470,11 +489,20 @@ namespace tensor
             total_size_ = acc;
         }
     
+        /* Uninitialized impl */
         Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device)
             : dtype_(dtype), device_(device), shape_(shape)
         {
             refresh_metadata();
             storage_ = std::make_shared<Storage>(total_size_ * element_size(dtype), device);
+        }
+    
+        /* Impl from pointer to values */
+        Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src = nullptr)
+            : dtype_(dtype), device_(device), shape_(shape)
+        {
+            refresh_metadata();
+            storage_ = std::make_shared<Storage>(total_size_ * element_size(dtype), device, src);
         }
 
         //TODO: requires methods for deep copy and shallow copy (same storage)
@@ -507,6 +535,8 @@ namespace tensor
 
 
     // ---------------------------------- CONSTRUCTORS ---------------------------------- 
+    
+    // ---------------------------------- empty constructors ---------------------------------- 
 
     // Create tensor from existing implementation
     inline Tensor::Tensor(std::unique_ptr<Impl> impl)
@@ -532,7 +562,24 @@ namespace tensor
         return new_tensor;
     }
 
+    // ---------------------------------- overloaded (?) constructors ---------------------------------- 
 
+    /* Construct tensor from: shape (std::vector<size_t>), values(std::vector<T>) and device */
+    template<typename T>
+    inline Tensor::Tensor(const std::vector<size_t>& shape, const std::vector<T>& values, Device device)
+    {
+        size_t expected_elements = 1;
+        for (auto s : shape) expected_elements *= s;
+
+        if (values.size() != expected_elements) {
+            //TODO-fix: more informative error message.
+            throw std::invalid_argument("Values size does not match the shape");
+        }
+
+        ScalarType dtype = get_scalar_type<T>();
+
+        pimpl_ = std::make_unique<Impl>(shape, dtype, device, values.data());
+    }
 
 
     // -------------------------------------------------------------------------------------------------------------  
@@ -544,14 +591,6 @@ namespace tensor
     public:
         static Tensor add(const Tensor& lhs, const Tensor& rhs);
     };
-
-
-
-
-
-
-
-
 
 
     // -------------------------------------------------------------------------------------------------------------  

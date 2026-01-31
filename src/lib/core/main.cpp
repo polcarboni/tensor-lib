@@ -26,6 +26,7 @@ int main()
     std::string cpuStr = tensor::to_string(cpu);
     std::cout << "\nCPU as string: " << cpuStr << "\n";
 
+
     // ---------------------------- ALLOCATORS ----------------------------
 
     //Manual allocation with allocator
@@ -62,5 +63,10 @@ int main()
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
     }
+
+
+
+
+    
     return 0;
 }
