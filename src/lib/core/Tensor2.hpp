@@ -32,6 +32,11 @@
     Added the handle for PIMPL (correct but not tested). Added first version of CUDAAllocator.
 
     <?>: Something could be done for the device index (allocator factory that set device before allocation). 
+
+    ------------------------------------------------------------------------------------------------
+
+    Added contiguous utility functions to tensor implementation class.
+    TODO: add it also for CUDA device.
 */
 
 
@@ -43,8 +48,6 @@ namespace tensor
     struct AutogradMeta;
     class Node;
     class Edge;
-
-
 
 
     // -------------------------------------------------------------------------------------------------------------  
@@ -450,6 +453,10 @@ namespace tensor
         bool requires_grad() const;
         void set_requires_grad(bool r) const;
 
+        Tensor contiguous() const;
+        bool is_contiguous() const;
+        Tensor view(std::vector<size_t>& shape) const;
+        Tensor reshape(std::vector<size_t>& shape) const;
     };
 
 
@@ -460,17 +467,17 @@ namespace tensor
     // ------------------------------------------------------------------------------------------------------------- 
 
     // TODO: constructor to pass values to the storage (non-null initialization of vector)
-
+    // TODO: check if view and clone are using same or new storage correctly
 
     struct Tensor::Impl
     {
         std::shared_ptr<Storage> storage_ = nullptr;
         ScalarType dtype_;
         Device device_;
-        size_t offset_ = 0;
+        size_t offset_ = 0;                 /* Elements offset */
         std::vector<size_t> shape_;
         std::vector<size_t> strides_;
-        size_t total_size_ = 0;
+        size_t total_size_ = 0;             /* Number of elements */
         bool requires_grad_ = false;
         std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
@@ -489,6 +496,16 @@ namespace tensor
             total_size_ = acc;
         }
     
+        
+        // TODO: i am not sure how this function would be useful, i saved it here just in case
+        /* Helper: finds the actual memory address for logical indexing (useful in element-wise operations)*/
+        size_t get_physical_offset(const std::vector<size_t>& indices) const {
+            size_t offset = offset_;
+            for (size_t i = 0; i < indices.size(); ++i) {
+                offset += indices[i] * strides_[i];
+            }
+            return offset;
+        }
     
         /* Impl from pointer to values */
         Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src = nullptr)
@@ -508,6 +525,104 @@ namespace tensor
             new_impl->strides_ = strides_;
             new_impl->requires_grad_ = requires_grad_;
             
+            return new_impl;
+        }
+
+        std::unique_ptr<Impl> contiguous() const {
+            if (this->is_contiguous()) return this->clone();
+
+            auto new_impl = std::make_unique<Impl>(shape_, dtype_, device_);
+
+            size_t elem_sz = element_size(dtype_);
+            char* dst_ptr = static_cast<char*>(new_impl->storage_->data());
+            char* src_ptr = static_cast<char*>(storage_->data());
+
+            if (device_.type == DeviceType::CPU) {
+                // Map every logcal coordinate to physical offset
+                std::vector<size_t> current_indices(shape_.size(), 0);
+                for (size_t i = 0; i < total_size_; ++i) {
+                    // Get physical location in non-contiguous source
+                    size_t src_element_offset = get_physical_offset(current_indices);
+
+                    // Copy one element
+                    std::memcpy(dst_ptr + (i * elem_sz), 
+                                src_ptr + (src_element_offset * elem_sz),
+                                elem_sz);
+
+                    // Increment multi-dimensional index (odometer logic)
+                    for (int dim = static_cast<int>(shape_.size()) - 1; dim >= 0; --dim) {
+                        current_indices[dim]++;
+                        if (current_indices[dim] < shape_[dim]) {
+                            break;
+                        } else {
+                            current_indices[dim] = 0;
+                        }
+                    }
+                }
+            } else {
+                #ifdef USE_CUDA
+                    throw std::runtime_error("Contiguous repack kernel for CUDA not yet implemented");
+                #else
+                    throw std::runtime_error("CUDA support not compiled.");
+                #endif
+            }
+            return new_impl;
+        }
+
+        /* Checks if the strides represent a contiguous representation of data */
+        bool is_contiguous() const {
+            if(shape_.empty()) return true;
+            
+            size_t expected_stride = 1;
+            for (int i = static_cast<int>(shape_.size()) - 1; i >= 0; --i) {
+                if (shape_[i] == 0) return true;
+
+                if (shape_[i] > 1 && strides_[i] != expected_stride) {
+                    return false;
+                }
+                expected_stride *= shape_[i];
+            }
+            return true;
+        }
+
+        std::unique_ptr<Impl> view(std::vector<size_t>& new_shape) const {
+            int inferred_idx = -1;
+            size_t product = 1;
+            
+            // Handle dimension inference using the -1 trick (what does this mean?)
+            for (int i = 0; i< new_shape.size(); ++i) {
+                if (static_cast<int>(new_shape[i]) == -1) {
+                    if (inferred_idx != -1) throw std::runtime_error("Only one dimension can be -1");
+                    inferred_idx = i;
+                } else {
+                    product *= new_shape[i];
+                }
+            }
+
+            if (inferred_idx != -1) {
+                if (total_size_ % product != 0) throw std::runtime_error("Invalid shape for total size");
+                new_shape[inferred_idx] = total_size_ / product;
+            }
+
+            // Total size validation
+            size_t new_total_size = 1;
+            for (auto s : new_shape) new_total_size *= s;
+            if (new_total_size != total_size_) {
+                throw std::runtime_error("view: size mismatch");
+            }
+
+            // Contiguity check: non-contiguous tensors cannot be viewed into a new shape
+            if (!is_contiguous()) {
+                throw std::runtime_error("view: tensor is not contiguous. Use .contiguous() before .view() or use .reshape()");
+            }
+
+            // New implementation with the same storage
+            auto new_impl = std::make_unique<Impl>(new_shape, dtype_, device_);
+
+            new_impl->storage_ = this->storage_;
+            new_impl->offset_ = this->offset_;
+            new_impl->requires_grad_ = this->requires_grad_;
+
             return new_impl;
         }
 
@@ -542,7 +657,6 @@ namespace tensor
         : pimpl_(std::make_unique<Impl>(shape, dtype, device)) { };
 
     inline Tensor::~Tensor() = default;
-
     
     inline Tensor::Tensor(const Tensor& other) {        /* Shallow copy (view) */
         if (other.pimpl_) { pimpl_ = other.pimpl_->clone(); }
@@ -574,16 +688,64 @@ namespace tensor
         pimpl_ = std::make_unique<Impl>(shape, dtype, device, values.data());
     }
 
+    // ----------------------------------  utility functions ---------------------------------- 
+
+    inline Tensor Tensor::contiguous() const {
+        return Tensor(pimpl_->contiguous());
+    }
+
+    inline bool Tensor::is_contiguous() const {
+        return pimpl_->is_contiguous();
+    }
+
+    inline Tensor Tensor::view(std::vector<size_t>& shape) const {
+        return Tensor(pimpl_->view(shape));
+    }
+
+    inline Tensor Tensor::reshape(std::vector<size_t>& shape) const {
+        if (this->is_contiguous()) {
+            return this->view(shape);
+        } else {
+            return this->contiguous().view(shape);
+        }
+    }
+
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                           OPERATION DISPATCHER CLASS
     // ------------------------------------------------------------------------------------------------------------- 
 
-    class OpDispatcher
-    {
-    public:
-        static Tensor add(const Tensor& lhs, const Tensor& rhs);
-    };
+    // DISPATCH KEY?
+    // ..... still not sure ...
+
+    // struct DispatchKey {
+    //     DeviceType device;
+    //     ScalarType dtype;
+
+    //     bool operator==(const DispatchKey& other) const {
+    //         return device == other.device && dtype == other.dtype;
+    //     }
+    // };
+
+    // // Hash function for the key to be used in std::unordered_map
+    // struct DispatchKeyHash {
+    //     size_t operator()(const DispatchKey &k) const {
+    //         return (static_cast<size_t>)
+    //     }
+    // };
+
+    // class Dispatcher
+    // {
+    // public:
+
+    //     static Dispatcher& instance()
+    //     {
+    //         static Dispatcher i;
+    //         return i;
+    //     }
+        
+    //     static Tensor add(const Tensor& lhs, const Tensor& rhs);
+    // };
 
 
     // -------------------------------------------------------------------------------------------------------------  
