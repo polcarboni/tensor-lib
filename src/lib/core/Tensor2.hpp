@@ -337,7 +337,7 @@ namespace tensor
                     #ifdef USE_CUDA
                         cudaError_t err = cudaMemcpy(data_, other.data_, size_bytes_, cudaMemcpyDeviceToDevice);
                         if(err != cudaSuccess) {
-                            throw std:::runtime_error(std::string("CUDA Memcpy DeviceToDevice failed: ") + cudaGetErrorString(err));
+                            throw std::runtime_error(std::string("CUDA Memcpy DeviceToDevice failed: ") + cudaGetErrorString(err));
                         }
                     #endif
                 }
@@ -438,7 +438,7 @@ namespace tensor
         Tensor clone() const;
 
         template<typename T>
-        Tensor::Tensor(const std::vector<size_t>&, const std::vector<T>&, Device device = {DeviceType::CPU, 0});
+        Tensor(const std::vector<size_t>&, const std::vector<T>&, Device device = {DeviceType::CPU, 0});
 
         // Accessors declarations
         const std::vector<size_t>& shape() const;
@@ -489,13 +489,6 @@ namespace tensor
             total_size_ = acc;
         }
     
-        /* Uninitialized impl */
-        Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device)
-            : dtype_(dtype), device_(device), shape_(shape)
-        {
-            refresh_metadata();
-            storage_ = std::make_shared<Storage>(total_size_ * element_size(dtype), device);
-        }
     
         /* Impl from pointer to values */
         Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src = nullptr)
