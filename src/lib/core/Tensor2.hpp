@@ -44,11 +44,11 @@ namespace tensor
 {
     class Allocator;
     class Storage;
+    struct TensorImpl;
     class Tensor;
     struct AutogradMeta;
     class Node;
     class Edge;
-
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                                 TYPES/HELPERS 
@@ -65,8 +65,8 @@ namespace tensor
         if (t1 == t2) return t1;
         if (t1 == ScalarType::Float64 || t2 == ScalarType::Float64) return ScalarType::Float64;
         if (t1 == ScalarType::Float32 || t2 == ScalarType::Float32) return ScalarType::Float32;
-        if (t1 == ScalarType::Int64 || t2 == ScalarType::Int64)     return ScalarType::Int64;
-        if (t1 == ScalarType::Int32 || t2 == ScalarType::Int32)     return ScalarType::Int32;
+        if (t1 == ScalarType::Int64   || t2 == ScalarType::Int64)   return ScalarType::Int64;
+        if (t1 == ScalarType::Int32   || t2 == ScalarType::Int32)   return ScalarType::Int32;
         return ScalarType::Bool;
     }
 
@@ -103,13 +103,13 @@ namespace tensor
 
     template<typename T>
     inline constexpr ScalarType get_scalar_type() {
-        if constexpr (std::is_same_v<T, double>) return ScalarType::Float64;
-        else if constexpr (std::is_same_v<T, float>) return ScalarType::Float32;
-        else if constexpr (std::is_same_v<T, int64_t>) return ScalarType::Int64;
+        if constexpr (std::is_same_v<T, double>)        return ScalarType::Float64;
+        else if constexpr (std::is_same_v<T, float>)    return ScalarType::Float32;
+        else if constexpr (std::is_same_v<T, int64_t>)  return ScalarType::Int64;
         else if constexpr (std::is_same_v<T, long long>) return ScalarType::Int64;
-        else if constexpr (std::is_same_v<T, int32_t>) return ScalarType::Int32;
-        else if constexpr (std::is_same_v<T, int>) return ScalarType::Int32;
-        else if constexpr (std::is_same_v<T, bool>) return ScalarType::Bool;
+        else if constexpr (std::is_same_v<T, int32_t>)  return ScalarType::Int32;
+        else if constexpr (std::is_same_v<T, int>)      return ScalarType::Int32;
+        else if constexpr (std::is_same_v<T, bool>)     return ScalarType::Bool;
         else {
             static_assert(sizeof(T) == 0, "Unsupported C++ Type for Tensor ScalarType mapping");
         }
@@ -412,64 +412,13 @@ namespace tensor
   
 
     // -------------------------------------------------------------------------------------------------------------  
-    //                                                  TENSOR CLASS
-    // ------------------------------------------------------------------------------------------------------------- 
-
-    //TODO-fiX: methods should only be declared inside the class and defined after Tensor::impl (they require the full body to be defined)
-    /*
-        TENSOR CLASS
-        */
-    class Tensor
-    {
-    private:
-
-        // ---------------------------- IMPLEMENTATION ---------------------------- 
-        struct Impl;
-        std::unique_ptr<Impl> pimpl_;
-        Tensor(std::unique_ptr<Impl>);
-    
-    public:
-        
-        // ---------------------------- DECLARATIONS ---------------------------- 
-
-        Tensor();
-        Tensor(const std::vector<size_t>&, ScalarType dtype, Device device);
-        ~Tensor();
-        Tensor(Tensor&&) noexcept = default;    // Move constructor
-        Tensor& operator=(Tensor&&) noexcept = default;
-        Tensor(const Tensor& other);    // Copy constructor
-        Tensor clone() const;
-
-        template<typename T>
-        Tensor(const std::vector<size_t>&, const std::vector<T>&, Device device = {DeviceType::CPU, 0});
-
-        // Accessors declarations
-        const std::vector<size_t>& shape() const;
-        const std::vector<size_t>& strides() const;
-        ScalarType dtype() const;
-        Device device() const;
-        size_t size() const;
-        size_t dims() const;
-        bool requires_grad() const;
-        void set_requires_grad(bool r) const;
-
-        Tensor contiguous() const;
-        bool is_contiguous() const;
-        Tensor view(std::vector<size_t>& shape) const;
-        Tensor reshape(std::vector<size_t>& shape) const;
-    };
-
-
-
-
-    // -------------------------------------------------------------------------------------------------------------  
     //                                        TENSOR IMPLEMENTATION CLASS
-    // ------------------------------------------------------------------------------------------------------------- 
+    // -------------------------------------------------------------------------------------------------------------
 
     // TODO: constructor to pass values to the storage (non-null initialization of vector)
     // TODO: check if view and clone are using same or new storage correctly
 
-    struct Tensor::Impl
+    struct TensorImpl
     {
         std::shared_ptr<Storage> storage_ = nullptr;
         ScalarType dtype_;
@@ -481,6 +430,8 @@ namespace tensor
         bool requires_grad_ = false;
         std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
+        // ---------------------------------------- HELPER FUNCTIONS ----------------------------------------
+    
         void refresh_metadata()
         {
             if(shape_.empty()) {
@@ -507,8 +458,10 @@ namespace tensor
             return offset;
         }
     
+        // ---------------------------------------- CONSTRUCTOR ----------------------------------------
+
         /* Impl from pointer to values */
-        Impl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src = nullptr)
+        TensorImpl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src = nullptr)
             : dtype_(dtype), device_(device), shape_(shape)
         {
             refresh_metadata();
@@ -517,9 +470,12 @@ namespace tensor
 
         //TODO: requires methods for deep copy and shallow copy (same storage)
 
-        std::unique_ptr<Impl> clone() const
+
+        // ---------------------------------------- GEOMETRIC FUNCTIONS ----------------------------------------
+
+        std::unique_ptr<TensorImpl> clone() const
         {
-            auto new_impl = std::make_unique<Impl>(shape_, dtype_, device_);
+            auto new_impl = std::make_unique<TensorImpl>(shape_, dtype_, device_);
             new_impl->storage_ = storage_;
             new_impl->offset_ = offset_;
             new_impl->strides_ = strides_;
@@ -528,10 +484,10 @@ namespace tensor
             return new_impl;
         }
 
-        std::unique_ptr<Impl> contiguous() const {
+        std::unique_ptr<TensorImpl> contiguous() const {
             if (this->is_contiguous()) return this->clone();
 
-            auto new_impl = std::make_unique<Impl>(shape_, dtype_, device_);
+            auto new_impl = std::make_unique<TensorImpl>(shape_, dtype_, device_);
 
             size_t elem_sz = element_size(dtype_);
             char* dst_ptr = static_cast<char*>(new_impl->storage_->data());
@@ -585,7 +541,7 @@ namespace tensor
             return true;
         }
 
-        std::unique_ptr<Impl> view(std::vector<size_t>& new_shape) const {
+        std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const {
             int inferred_idx = -1;
             size_t product = 1;
             
@@ -617,7 +573,7 @@ namespace tensor
             }
 
             // New implementation with the same storage
-            auto new_impl = std::make_unique<Impl>(new_shape, dtype_, device_);
+            auto new_impl = std::make_unique<TensorImpl>(new_shape, dtype_, device_);
 
             new_impl->storage_ = this->storage_;
             new_impl->offset_ = this->offset_;
@@ -626,89 +582,109 @@ namespace tensor
             return new_impl;
         }
 
+    
     };
 
-    // ------------------------------ TENSOR CLASS MEMBER METHODS ------------------------------ 
 
-    // ---------------------------------- ACCESSORS ---------------------------------- 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  TENSOR CLASS
+    // ------------------------------------------------------------------------------------------------------------- 
 
-    inline const std::vector<size_t>& Tensor::shape() const { return pimpl_->shape_; }
-    inline const std::vector<size_t>& Tensor::strides() const { return pimpl_->strides_; }
-    inline ScalarType Tensor::dtype() const { return pimpl_->dtype_; }
-    inline Device Tensor::device() const { return pimpl_->device_; }
-    inline size_t Tensor::size() const { return pimpl_->total_size_; }
-    inline size_t Tensor::dims() const { return pimpl_->shape_.size(); }
-    inline bool Tensor::requires_grad() const { return pimpl_->requires_grad_; }
-    inline void Tensor::set_requires_grad(bool r) const { pimpl_->requires_grad_ = r; }
-
-
-    // ---------------------------------- CONSTRUCTORS ---------------------------------- 
-    
-    // ---------------------------------- empty constructors ---------------------------------- 
-
-    // Create tensor from existing implementation
-    inline Tensor::Tensor(std::unique_ptr<Impl> impl)
-        : pimpl_(std::move(impl)) {}
-
-    // Empty tensor: no implementation
-    inline Tensor::Tensor() : pimpl_(nullptr) { };   
-
-    inline Tensor::Tensor(const std::vector<size_t>& shape, ScalarType dtype = ScalarType::Float32, Device device = {DeviceType::CPU, 0})
-        : pimpl_(std::make_unique<Impl>(shape, dtype, device)) { };
-
-    inline Tensor::~Tensor() = default;
-    
-    inline Tensor::Tensor(const Tensor& other) {        /* Shallow copy (view) */
-        if (other.pimpl_) { pimpl_ = other.pimpl_->clone(); }
-    }
-    
-    inline Tensor Tensor::clone() const {               /* Deep copy */
-        //TODO-fix: constructor allocates memory
-        auto new_tensor = Tensor(pimpl_->shape_, pimpl_->dtype_, pimpl_->device_);
-        new_tensor.pimpl_->storage_ = std::make_shared<Storage>(pimpl_->storage_->clone());
-        return new_tensor;
-    }
-
-    // ---------------------------------- overloaded (?) constructors ---------------------------------- 
-
-    /* Construct tensor from: shape (std::vector<size_t>), values(std::vector<T>) and device */
-    template<typename T>
-    inline Tensor::Tensor(const std::vector<size_t>& shape, const std::vector<T>& values, Device device)
+    /*
+        TENSOR CLASS: wrapper of the TensorImpl class to be used as public API for the tensor library
+        */
+    class Tensor
     {
-        size_t expected_elements = 1;
-        for (auto s : shape) expected_elements *= s;
+    private:
 
-        if (values.size() != expected_elements) {
-            //TODO-fix: more informative error message.
-            throw std::invalid_argument("Values size does not match the shape");
+        // ---------------------------- IMPLEMENTATION ---------------------------- 
+        // struct Impl;
+        std::unique_ptr<TensorImpl> pimpl_;
+        
+        // Create tensor from existing implementation
+        Tensor(std::unique_ptr<TensorImpl> impl)
+            : pimpl_(std::move(impl)) {}
+    
+    public:
+
+        // ---------------------------------- ACCESSORS ---------------------------------- 
+
+        const std::vector<size_t>& shape() const { return pimpl_->shape_; }
+        const std::vector<size_t>& strides() const { return pimpl_->strides_; }
+        ScalarType dtype() const { return pimpl_->dtype_; }
+        Device device() const { return pimpl_->device_; }
+        size_t size() const { return pimpl_->total_size_; }
+        size_t dims() const { return pimpl_->shape_.size(); }
+        bool requires_grad() const { return pimpl_->requires_grad_; }
+        void set_requires_grad(bool r) const { pimpl_->requires_grad_ = r; }
+
+
+        // ---------------------------------- CONSTRUCTORS ---------------------------------- 
+        
+        // ---------------------------------- empty constructors ---------------------------------- 
+
+
+        // Empty tensor: no implementation
+        Tensor() : pimpl_(nullptr) { };   
+
+        Tensor(const std::vector<size_t>& shape, ScalarType dtype = ScalarType::Float32, Device device = {DeviceType::CPU, 0})
+            : pimpl_(std::make_unique<TensorImpl>(shape, dtype, device)) { };
+
+        ~Tensor() = default;
+        
+        Tensor(const Tensor& other) {        /* Shallow copy (view) */
+            if (other.pimpl_) { pimpl_ = other.pimpl_->clone(); }
+        }
+        
+        Tensor clone() const {               /* Deep copy */
+            //TODO-fix: constructor allocates memory
+            auto new_tensor = Tensor(pimpl_->shape_, pimpl_->dtype_, pimpl_->device_);
+            new_tensor.pimpl_->storage_ = std::make_shared<Storage>(pimpl_->storage_->clone());
+            return new_tensor;
         }
 
-        ScalarType dtype = get_scalar_type<T>();
+        // ---------------------------------- overloaded (?) constructors ---------------------------------- 
 
-        pimpl_ = std::make_unique<Impl>(shape, dtype, device, values.data());
-    }
+        /* Construct tensor from: shape (std::vector<size_t>), values(std::vector<T>) and device */
+        template<typename T>
+        Tensor(const std::vector<size_t>& shape, const std::vector<T>& values, Device device)
+        {
+            size_t expected_elements = 1;
+            for (auto s : shape) expected_elements *= s;
 
-    // ----------------------------------  utility functions ---------------------------------- 
+            if (values.size() != expected_elements) {
+                //TODO-fix: more informative error message.
+                throw std::invalid_argument("Values size does not match the shape");
+            }
 
-    inline Tensor Tensor::contiguous() const {
-        return Tensor(pimpl_->contiguous());
-    }
+            ScalarType dtype = get_scalar_type<T>();
 
-    inline bool Tensor::is_contiguous() const {
-        return pimpl_->is_contiguous();
-    }
-
-    inline Tensor Tensor::view(std::vector<size_t>& shape) const {
-        return Tensor(pimpl_->view(shape));
-    }
-
-    inline Tensor Tensor::reshape(std::vector<size_t>& shape) const {
-        if (this->is_contiguous()) {
-            return this->view(shape);
-        } else {
-            return this->contiguous().view(shape);
+            pimpl_ = std::make_unique<TensorImpl>(shape, dtype, device, values.data());
         }
-    }
+
+        // ---------------------------------- UTILITY FUNCTIONS ---------------------------------- 
+
+        Tensor contiguous() const {
+            return Tensor(pimpl_->contiguous());
+        }
+
+        bool is_contiguous() const {
+            return pimpl_->is_contiguous();
+        }
+
+        Tensor view(std::vector<size_t>& shape) const {
+            return Tensor(pimpl_->view(shape));
+        }
+
+        Tensor reshape(std::vector<size_t>& shape) const {
+            if (this->is_contiguous()) {
+                return this->view(shape);
+            } else {
+                return this->contiguous().view(shape);
+            }
+        }
+    };
+
 
 
     // -------------------------------------------------------------------------------------------------------------  
@@ -755,21 +731,21 @@ namespace tensor
 
 
 
-    class Edge
-    {
-    private:
-        std::shared_ptr<Node> function_ = nullptr;
-        uint32_t input_nr_ = 0;
-    };
+    // class Edge
+    // {
+    // private:
+    //     std::shared_ptr<Node> function_ = nullptr;
+    //     uint32_t input_nr_ = 0;
+    // };
 
 
-    class Node 
-    {
-    protected:
-        std::vector<Edge> next_edges_;  //parents (?)
-        std::string name_;
-        size_t num_inputs_ = 0;
-        //could track input metadata to ensure correct shapes
-    };
+    // class Node 
+    // {
+    // protected:
+    //     std::vector<Edge> next_edges_;  //parents (?)
+    //     std::string name_;
+    //     size_t num_inputs_ = 0;
+    //     //could track input metadata to ensure correct shapes
+    // };
 
 } //namespace tensor
