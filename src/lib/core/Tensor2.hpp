@@ -143,6 +143,16 @@ namespace tensor
         int index = 0;
     };
 
+    inline bool operator==(const Device& lhs, const Device& rhs)
+    {
+        return lhs.type == rhs.type && lhs.index == rhs.index;
+    };
+    
+    inline bool operator!=(const Device& lhs, const Device& rhs)
+    {
+        return !(lhs == rhs);
+    }
+    
     inline std::string to_string(const Device& device)
     {
         return to_string(device.type) + "[" + std::to_string(device.index) + "]";
@@ -152,6 +162,7 @@ namespace tensor
     {
         return os << to_string(device);
     }
+
 
     // ------------------------------ AUTOGRAD META STRUCT  --------------------------------
     
@@ -609,6 +620,9 @@ namespace tensor
 
         // ---------------------------------- ACCESSORS ---------------------------------- 
 
+        TensorImpl* impl() const { return pimpl_.get(); }
+        // const TensorImpl& impl() const { return *pimpl_; }
+
         const std::vector<size_t>& shape() const { return pimpl_->shape_; }
         const std::vector<size_t>& strides() const { return pimpl_->strides_; }
         ScalarType dtype() const { return pimpl_->dtype_; }
@@ -683,46 +697,131 @@ namespace tensor
                 return this->contiguous().view(shape);
             }
         }
+
+        // For operations example:
+        Tensor add(const Tensor&, const Tensor&);
     };
 
+
+
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  BROADCASTING
+    // ------------------------------------------------------------------------------------------------------------- 
+
+    struct BroadcastInfo
+    {
+        std::vector<size_t> shape_;
+        std::vector<size_t> strides_lhs_;    /* Virtual strides for lhs */
+        std::vector<size_t> strides_rhs_;    /* Virtual strides for rhs */
+    };
+    
+
+    inline std::vector<size_t> broadcast_shapes(const std::vector<size_t>& s1, const std::vector<size_t>& s2)
+    {
+        size_t ndim1 = s1.size();
+        size_t ndim2 = s2.size();
+        size_t max_dims = std::max(ndim1, ndim2);
+        
+        std::vector<size_t> result_shape(max_dims);
+
+        for(int i = 0; i < static_cast<int>(max_dims); ++i) {
+            
+            size_t d1 = (i < static_cast<int>(ndim1) ? s1[ndim1 - 1 - i] : 1);
+            size_t d2 = (i < static_cast<int>(ndim2) ? s2[ndim2 - 1 - i] : 1);
+            
+            if (d1 == d2) {
+                result_shape[max_dims - 1 - i] = d1;
+            } else if (d1 == 1) {
+                result_shape[max_dims - 1 - i] = d2;
+            } else if (d2 == 1) {
+                result_shape[max_dims - 1 - i] = d1;
+            } else {
+                throw std::runtime_error("Tensors are not broadcastable");
+            }
+        }
+
+        return result_shape;
+    }
+
+    // TODO: this has to be integrated in the dispatcher function interface
+
+    inline BroadcastInfo get_broadcast_info(const TensorImpl& lhs, const TensorImpl& rhs)
+    {
+        std::vector<size_t> out_shape = broadcast_shapes(lhs.shape_, rhs.shape_);
+        size_t ndim = out_shape.size();
+
+        BroadcastInfo info;
+        info.shape_ = out_shape;
+        info.strides_lhs_.resize(ndim);
+        info.strides_rhs_.resize(ndim);
+        
+        for (int i = 0; i < static_cast<int>(ndim); ++i)
+        {
+            int rev_i = static_cast<int>(ndim) - 1 - i;
+
+            // Logical check for lhs
+            int lhs_idx = static_cast<int>(lhs.shape_.size()) - 1 - i;
+            if (lhs_idx >= 0 && lhs.shape_[lhs_idx] != 1) {
+                info.strides_lhs_[rev_i] = lhs.strides_[lhs_idx];
+            } else {
+                info.strides_lhs_[rev_i] = 0;   // Broadcasted/prepended dimension
+            }
+
+            // Logical check for rhs
+            int rhs_idx = static_cast<int>(rhs.shape_.size()) - 1 - i;
+            if (rhs_idx >= 0 && rhs.shape_[rhs_idx] != 1) {
+                info.strides_rhs_[rev_i] = rhs.strides_[rhs_idx];
+            } else {
+                info.strides_rhs_[rev_i] = 0;   // Broadcasted/prepended dimension
+            }
+
+        }
+        return info;
+    }
 
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                           OPERATION DISPATCHER CLASS
     // ------------------------------------------------------------------------------------------------------------- 
 
-    // DISPATCH KEY?
-    // ..... still not sure ...
+    enum class OpCode { Add, Sub, Mul, Div, Exp, Log };
 
-    // struct DispatchKey {
-    //     DeviceType device;
-    //     ScalarType dtype;
+    using OpFunction = std::function<void(TensorImpl* out, const TensorImpl* lhs, const TensorImpl* rhs)>;
 
-    //     bool operator==(const DispatchKey& other) const {
-    //         return device == other.device && dtype == other.dtype;
-    //     }
-    // };
+    class Dispatcher
+    {
+    public:
+        static Dispatcher& instance();
+        void register_kernel(OpCode op, DeviceType device, OpFunction fn);
+        void dispatch(OpCode op, TensorImpl* out, const TensorImpl* lhs, const TensorImpl* rhs);
+    };
 
-    // // Hash function for the key to be used in std::unordered_map
-    // struct DispatchKeyHash {
-    //     size_t operator()(const DispatchKey &k) const {
-    //         return (static_cast<size_t>)
-    //     }
-    // };
+    // Example of function implementation:
+    inline Tensor Tensor::add(const Tensor& lhs, const Tensor& rhs)
+    {
+        if (lhs.device() != rhs.device()) throw std::runtime_error("Devices must match");
+        ScalarType out_type = promote_types(lhs.dtype(), rhs.dtype());
+        Tensor result(broadcast_shapes(lhs.shape(), rhs.shape()), out_type, lhs.device());
+        Dispatcher::instance().dispatch(OpCode::Add, result.impl(), lhs.impl(), rhs.impl());
+        return result;
+    }
 
-    // class Dispatcher
-    // {
-    // public:
+    // ---------- CPU kernel template ----------
 
-    //     static Dispatcher& instance()
-    //     {
-    //         static Dispatcher i;
-    //         return i;
-    //     }
-        
-    //     static Tensor add(const Tensor& lhs, const Tensor& rhs);
-    // };
+    template <typename T>
+    void cpu_add_kernel(TensorImpl* out, const TensorImpl* lhs, const TensorImpl* rhs)
+    {
+        T* out_ptr = static_cast<T*>(out->storage_->data());
+    }
 
+    void cpu_add_dispatcher(TensorImpl* out, const TensorImpl* lhs, const TensorImpl* rhs)
+    {
+        switch(out->dtype_) {
+            case ScalarType::Float32: cpu_add_kernel<float>(out, lhs, rhs); break;
+            // handle all the types ...
+        }
+    }
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  GRAD CLASSES ..... (to do later)
