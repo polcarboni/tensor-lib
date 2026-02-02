@@ -10,8 +10,11 @@
 #include <iostream>
 #include <cstring>
 
+#define USE_CUDA
+
+
 #ifdef USE_CUDA
-#include <cuda_runtime.h>
+    #include <cuda_runtime.h>
 #endif
 
 namespace tensor
@@ -20,6 +23,8 @@ namespace tensor
     class Storage;
     struct TensorImpl;
     class Tensor;
+    struct MatMulParams;
+
     struct AutogradMeta;
     class Node;
     class Edge;
@@ -48,7 +53,7 @@ namespace tensor
 
     //  DISPATCHER MACRO
     #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
-        [&] { \    
+        [&] { \
             switch(TYPE) { \
                 case ScalarType::Float32: {using scalar_t = float; return __VA_ARGS__(); break; } \
                 case ScalarType::Float64: {using scalar_t = double; return __VA_ARGS__(); break; } \
@@ -240,7 +245,8 @@ namespace tensor
         size_t size() const;
         size_t dims() const;
         bool requires_grad() const;
-        void set_requires_grad(bool r) const;
+        
+        void set_requires_grad(bool r);
 
 
         // ---------------------------------- CONSTRUCTORS ---------------------------------- 
@@ -348,7 +354,26 @@ namespace tensor
     // -------------------------------------------------------------------------------------------------------------  
     //                                           BACKEND KERNEL INTERFACES
     // ------------------------------------------------------------------------------------------------------------- 
-   
+
+    // ----------------------------------------- linear algebra (matmul) dispatcher --------------------------------
+    
+    struct MatMulParams {
+        bool trans_a = false;
+        bool trans_b = false;
+        double alpha = 1.0;
+        double beta = 0.0;
+    };
+    
+    struct MatMulDispatcher {
+        static Tensor call(const Tensor& lhs, const Tensor& rhs, const MatMulParams& params = {});
+    };
+
+    std::vector<size_t> infer_matmul_shape(const std::vector<size_t>& lhs_shape,
+                                           const std::vector<size_t>& rhs_shape,
+                                           bool trans_a = false,
+                                           bool trans_b = false);
+    
+    
     struct CPUDevice {
         template<typename scalar_t, typename Op>
         static void launch_nullary(TensorIterator& iter, const Op& op);
@@ -390,16 +415,32 @@ namespace tensor
 
             template<typename scalar_t>
             static void launch_matmul(Tensor& out, const Tensor& lhs, const Tensor& rhs, const MatMulParams& params);
-        }
+        };
     #endif
 
 
     // ------------------------------------------------ factory dispatcher --------------------------------------------
     // Useful for producing tensors (ones, zeros, arange, fill_)
 
-    template<typename Op>
+    template<template <typename> class Op>
     struct NullaryElementwiseDispatcher {
-        static void call(TensorIterator& iter, const std::string& name);
+        static void call(TensorIterator& iter, const std::string& op_name) {
+            if (iter.device().type == DeviceType::CPU) {
+                DISPATCH_ALL_TYPES(iter.common_dtype(), op_name, [&] {
+                    CPUDevice::launch_nullary<scalar_t, Op<scalar_t>>(iter, Op<scalar_t>{});
+                });
+            }
+            #ifdef USE_CUDA
+                else if (iter.device().type == DeviceType::CUDA) {
+                    DISPATCH_ALL_TYPES(iter.common_dtype(), op_name, [&] {
+                        CUDADevice::launch_nullary<scalar_t, Op<scalar_t>>(iter, Op<scalar_t>{});
+                    });
+                }
+            #endif
+            else {
+                throw std::runtime_error("NullaryElementwiseDispatcher: Unsupported device type");
+            }
+        }
     };
     
     // ------------------------------------------------ comparison dispatcher --------------------------------------------
@@ -413,39 +454,22 @@ namespace tensor
     // ------------------------------------------------ element-wise dispatcher --------------------------------------------
 
     /* Abstract backend dispatcher to be specialized for CPU and CUDA backends */
-    template <typename Op>
+    template <template <typename> class Op>
     struct UnaryElementwiseDispatcher {
         static void call(TensorIterator& iter, const std::string& name);
     };
 
-    template <typename Op>
+    template <template <typename> class Op>
     struct BinaryElementwiseDispatcher {
         static void call(TensorIterator& iter, const std::string& name);
     };
 
-    template <typename Op>
+    template <template <typename> class Op>
     struct TernaryElementwiseDispatcher {
         static void call(TensorIterator& iter, const std::string& name);
     };
 
-    // ----------------------------------------- linear algebra (matmul) dispatcher --------------------------------
-    
-    struct MatMulParams {
-        bool trans_a = false;
-        bool trans_b = false;
-        double alpha = 1.0;
-        double beta = 0.0;
-    };
-    
-    struct MatMulDispatcher {
-        static Tensor call(const Tensor& lhs, const Tensor& rhs, const MatMulParams& params = {});
-    };
 
-    std::vector<size_t> infer_matmul_shape(const std::vector<size_t>& lhs_shape,
-                                           const std::vector<size_t>& rhs_shape,
-                                           bool trans_a = false,
-                                           bool trans_b = false);
-    
     // ----------------------------------------- reduction dispatcher --------------------------------
     
     /* Reduction requires specific iterator configurations where the output has fewer dims */
@@ -505,6 +529,21 @@ namespace tensor
      */
 
     template <template <typename> class Op>
+    Tensor nullary_op_impl(std::vector<size_t> shape, ScalarType dtype, Device device, const std::string& op_name)
+    {
+        Tensor result(shape, dtype, device);
+
+        TensorIteratorConfig config;
+        config.add_output(result);
+        auto iter = TensorIterator::build(config);
+
+        NullaryElementwiseDispatcher<Op>::call(iter, op_name);
+
+        return result;
+    }
+
+
+    template <template <typename> class Op>
     Tensor unary_op_impl(const Tensor& lhs, const std::string& op_name)
     {
         Tensor result(lhs.shape(), lhs.dtype(), lhs.device());
@@ -517,6 +556,7 @@ namespace tensor
 
         return result;
     }
+
 
     template <template <typename> class Op>
     Tensor binary_op_impl(const Tensor& lhs, const Tensor& rhs, const std::string& op_name)
@@ -537,6 +577,7 @@ namespace tensor
         return result;
     }
 
+
     // <!> for size > 2 the matmul operation is batched
     Tensor matmul(const Tensor& lhs, const Tensor& rhs) {
         if( lhs.dims() < 2 || rhs.dims() < 2) {
@@ -553,14 +594,14 @@ namespace tensor
         }
 
         auto out_shape = infer_matmul_shape(lhs.shape(), rhs.shape());
-        
+
+        //TODO-fix bug: the result is defined but never used
         Tensor result(out_shape, promote_types(lhs.dtype(), rhs.dtype()), lhs.device());
 
-        // TODO: check if to use (lhs, rhs, params)
-        MatMulDispatcher::call(lhs, rhs);
-
-        return result;
+        // TODO-fix: check the correct use of this
+        return MatMulDispatcher::call(lhs, rhs);;
     }
+
 
     template <template <typename> class Op, typename acc_t>
     Tensor reduction_op_impl(const Tensor& lhs, std::vector<size_t> dims, bool keepdim,
@@ -569,6 +610,7 @@ namespace tensor
 
     // ----------------------- operations api ----------------------- 
     
+    // Binary operations
     Tensor add(const Tensor& lhs, const Tensor& rhs)
     {
         return binary_op_impl<AddFunctor>(lhs, rhs, "add");
@@ -578,7 +620,9 @@ namespace tensor
     {
         return binary_op_impl<MulFunctor>(lhs, rhs, "mul");
     }
-    
+
+
+    // unary ReLU
     Tensor ReLU(const Tensor& lhs)
     {
         return unary_op_impl<ReLUFunctor>(lhs, "relu");
@@ -593,14 +637,23 @@ namespace tensor
     {
         Tensor result = sum(lhs, dims, keepdim);
 
-        double count = calculate_reduction_count(lhs, dims);
-        return result / count;
+        // // TODO: provide these implementation
+        // double count = calculate_reduction_count(lhs, dims);
+        // return result / count;
+
+        return result;
     }
+
     // ----------------------- operators oveloading ----------------------- 
     
     inline Tensor operator+(const Tensor& lhs, const Tensor& rhs)
     {
         return add(lhs,rhs);
+    }
+
+    inline Tensor operator*(const Tensor& lhs, const Tensor& rhs)
+    {
+        return mul(lhs, rhs);
     }
 
 
