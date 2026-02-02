@@ -48,7 +48,4 @@ namespace tensor
         Device device() const;
     };
 
-
-  
-
-}
+} // namespace tensor

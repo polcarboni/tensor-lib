@@ -62,5 +62,4 @@ namespace tensor
         static void call(TensorIterator& iter, const std::string& name, acc_t identity);
     };
     
- 
-}
+} // namespace tensor

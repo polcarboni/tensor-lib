@@ -15,5 +15,4 @@ namespace tensor
     // TODO: this has to be integrated in the dispatcher function interface
     inline BroadcastInfo get_broadcast_info(const TensorImpl& lhs, const TensorImpl& rhs);
 
-
 } // namespace tensor

@@ -62,4 +62,5 @@ namespace tensor
         Tensor view(std::vector<size_t>& shape) const;
         Tensor reshape(std::vector<size_t>& shape) const;
     };
+    
 } // namespace tensor

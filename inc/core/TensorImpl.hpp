@@ -46,5 +46,4 @@ namespace tensor
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
     };
 
-
-}
+} // namespace tensor

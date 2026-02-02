@@ -5,7 +5,6 @@
 
 namespace tensor
 {
-
     // ------------------------------ AUTOGRAD META STRUCT  --------------------------------
     
     struct AutogradMeta {
@@ -14,4 +13,5 @@ namespace tensor
         std::weak_ptr<Node> grad_accumulator_;
         uint32_t version_ = 0;
     };
-}
+
+} // namespace tensor

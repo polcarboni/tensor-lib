@@ -37,5 +37,4 @@ namespace tensor
         inline T operator()(T a, T b) const;
     };
 
-
 } // namespace tensor

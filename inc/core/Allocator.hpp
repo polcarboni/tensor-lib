@@ -31,6 +31,4 @@ namespace tensor {
         void deallocate(void* p) override;
     };
 
-
-
-}
+} // namespace tensor
