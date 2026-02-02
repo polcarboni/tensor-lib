@@ -116,6 +116,20 @@ namespace tensor
     }
 
 
+    //  DISPATCHER MACRO
+    #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
+        [&] { \    
+            switch(TYPE) { \
+                case ScalarType::Float32: {using scalar_t = float; return __VA_ARGS__(); break; } \
+                case ScalarType::Float64: {using scalar_t = double; return __VA_ARGS__(); break; } \
+                case ScalarType::Int32: {using scalar_t = int32_t; return __VA_ARGS__(); break; } \
+                case ScalarType::Int64: {using scalar_t = int64_t; return __VA_ARGS__(); break; } \
+                case ScalarType::Bool: {using scalar_t = bool; return __VA_ARGS__(); break; } \
+                default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE)); \
+                } \
+            } ()
+
+
     // --------------------------------- DEVICE TYPE --------------------------------- 
 
     enum class DeviceType { CPU, CUDA };
