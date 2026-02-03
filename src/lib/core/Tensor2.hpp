@@ -40,7 +40,7 @@
 */
 
 
-namespace tensor
+namespace tensor_helper
 {
     class Allocator;
     class Storage;

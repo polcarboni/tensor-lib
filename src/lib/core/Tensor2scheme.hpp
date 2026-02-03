@@ -17,7 +17,7 @@
     #include <cuda_runtime.h>
 #endif
 
-namespace tensor
+namespace tensor_helper
 {
     class Allocator;
     class Storage;

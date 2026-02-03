@@ -21,7 +21,7 @@
 #include <algorithm>
 // #include <execution>
 
-namespace tensor 
+namespace tensor_old 
 {
 
     // ------------------------------------------------------------------------------------------------------

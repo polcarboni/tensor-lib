@@ -1,5 +1,5 @@
 #pragma once
-#include "core/Tensor.hpp"
+#include "inc/core/Tensor.hpp"
 #include "TensorIterator.hpp"
 
 #define USE_CUDA

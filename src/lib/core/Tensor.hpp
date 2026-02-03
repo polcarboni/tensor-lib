@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <functional>  //std::function<void()> backward_op_ = nullptr;
 
-namespace tensor {
+namespace tensor_old {
 
     template<typename T>
     class Tensor

@@ -2,6 +2,7 @@
 #include "Types.hpp"
 #include "TensorImpl.hpp"
 #include <vector>
+#include <cstddef>
 #include <memory>
 
 namespace tensor
@@ -24,7 +25,7 @@ namespace tensor
     public:
 
         // ---------------------------------- ACCESSORS ---------------------------------- 
-
+        
         TensorImpl* impl() const;
         const std::vector<size_t>& shape() const;
         const std::vector<size_t>& strides() const;
@@ -32,18 +33,29 @@ namespace tensor
         Device device() const;
         size_t size() const;
         size_t dims() const;
-        bool requires_grad() const;
         
+        
+        // ---------------------------------- GRAD ACCESSORS ---------------------------------- 
+        
+        bool requires_grad() const;
         void set_requires_grad(bool r);
 
+        void backward(const Tensor& gradient, bool retain_graph = false, bool create_graph = false;)
+        Tensor grad() const;
+        void set_grad(Tensor grad);
+
+        std::shared_ptr<Node> grad_fn() const;
+        void set_grad_fn(std::shared_ptr<Node> fn);
+
+        bool is_leaf() const;
+        uint32_t output_nr() const;
 
         // ---------------------------------- CONSTRUCTORS ---------------------------------- 
         
         // ---------------------------------- empty constructors ---------------------------------- 
-
-
-        // Empty tensor: no implementation
-        Tensor();
+        
+        Tensor();   /* Empty tensor: no TensorImpl member */
+        Tensor(const std::vector<size_t>& shape);
         Tensor(const std::vector<size_t>& shape, ScalarType dtype = ScalarType::Float32, Device device = {DeviceType::CPU, 0});
         ~Tensor();
         Tensor(const Tensor& other);    /* Shallow copy (view) */
