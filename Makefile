@@ -1,4 +1,4 @@
-.PHONY: all preapare build clean
+.PHONY: all prepare build clean
 
 all: prepare build
 
