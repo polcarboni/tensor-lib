@@ -5,43 +5,22 @@
 
 namespace tensor
 {
-    // ----------------------- operations api ----------------------- 
+    // ------------------------------- BINARY OPERATIONS -------------------------------
     
-    // Binary operations
-    Tensor add(const Tensor& lhs, const Tensor& rhs)
-    {
-        return binary_op_impl<AddFunctor>(lhs, rhs, "add");
-    }
-
-    Tensor mul(const Tensor& lhs, const Tensor& rhs)
-    {
-        return binary_op_impl<MulFunctor>(lhs, rhs, "mul");
-    }
-
-
-    // unary ReLU
-    Tensor ReLU(const Tensor& lhs)
-    {
-        return unary_op_impl<ReLUFunctor>(lhs, "relu");
-    }
+    Tensor add(const Tensor& lhs, const Tensor& rhs);
+    Tensor mul(const Tensor& lhs, const Tensor& rhs);
     
-    // reduction op
-    Tensor sum(const Tensor& lhs, std::vector<size_t> dims, bool keepdim) {
-        return reduction_op_impl<AddFunctor>(lhs, dims, keepdim, 0.0, "sum");
-    }
-
-    Tensor mean(const Tensor& lhs, std::vector<size_t> dims, bool keepdim)
-    {
-        Tensor result = sum(lhs, dims, keepdim);
-
-        // // TODO: provide these implementation
-        // double count = calculate_reduction_count(lhs, dims);
-        // return result / count;
-
-        return result;
-    }
-
-    // ----------------------- operators oveloading ----------------------- 
+    // ------------------------------- UNARY OPERATIONS -------------------------------
+    
+    Tensor ReLU(const Tensor& lhs); 
+    
+    // ------------------------------- REDUCTION OPERATIONS -------------------------------
+    
+    Tensor sum(const Tensor& lhs, std::vector<size_t> dims, bool keepdim);
+    Tensor mean(const Tensor& lhs, std::vector<size_t> dims, bool keepdim);
+    
+    
+    // ------------------------------- OPERATORS OVERLOADING -------------------------------
     
     inline Tensor operator+(const Tensor& lhs, const Tensor& rhs)
     {

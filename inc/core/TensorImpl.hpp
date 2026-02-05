@@ -1,6 +1,7 @@
 #pragma once 
 #include "Storage.hpp"
 #include "autograd/AutogradMeta.hpp"
+#include <vector>
 
 namespace tensor
 {

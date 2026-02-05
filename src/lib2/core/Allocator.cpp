@@ -1,4 +1,4 @@
-#include "inc/core/Allocator.hpp"
+#include "core/Allocator.hpp"
 #include <cstdlib>
 
 namespace tensor {

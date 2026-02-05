@@ -1,7 +1,7 @@
-// #define USE_CUDA    //TODO-fix: define this in the build system instead of here
-// #include "Tensor2scheme.hpp"
-#include "inc/ops/Backend.hpp"
+#include "cuda/TensorCUDA.hpp"
+#include "ops/Backend.hpp"
 #include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 namespace tensor
 {

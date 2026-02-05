@@ -11,9 +11,13 @@ namespace tensor
     //                                                  TENSOR CLASS
     // ------------------------------------------------------------------------------------------------------------- 
 
+    class TensorImpl;
+    class Node;
+
     /*
         TENSOR CLASS: wrapper of the TensorImpl class to be used as public API for the tensor library
         */
+
     class Tensor
     {
     private:
@@ -40,7 +44,7 @@ namespace tensor
         bool requires_grad() const;
         void set_requires_grad(bool r);
 
-        void backward(const Tensor& gradient, bool retain_graph = false, bool create_graph = false;)
+        void backward(const Tensor& gradient, bool retain_graph = false, bool create_graph = false);
         Tensor grad() const;
         void set_grad(Tensor grad);
 
@@ -64,8 +68,8 @@ namespace tensor
         // ---------------------------------- overloaded (?) constructors ---------------------------------- 
 
         /* Construct tensor from: shape (std::vector<size_t>), values(std::vector<T>) and device */
-        template<typename T>
-        Tensor(const std::vector<size_t>& shape, const std::vector<T>& values, Device device);
+        // template<typename T>
+        // Tensor(const std::vector<size_t>& shape, const std::vector<T>& values, Device device);
 
         // ---------------------------------- UTILITY FUNCTIONS ---------------------------------- 
 

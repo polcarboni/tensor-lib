@@ -5,13 +5,28 @@ project(
     VERSION 1.0.0
     LANGUAGES CXX)
 
+option(ENABLE_TESTING "Enable unit test building with Catch2" ON)
+option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
+option(ENABLE_CUDA "Enable NVIDIA CUDA support" ON)
+
+if(ENABLE_CUDA)
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD 17)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        set(CMAKE_CUDA_ARCHITECTURE native)
+    else()
+        messsage(WARNING "CUDA compiler not found. Disabling CUDA support.")
+        set(ENABLE_CUDA OFF)
+    endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-option(ENABLE_TESTING "Enable unit test building with Catch2" ON)
-option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
 
 # -------------------------------- DEPENDENCIES --------------------------------
 
@@ -44,14 +59,14 @@ if(ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-
-# -------------------------------- SUBDIRECTORIES --------------------------------
-
-set(EXECUTABLE_NAME "main")
-
 if (ENABLE_CLANG_TIDY AND CLANG_TIDY_EXE)
     set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_COMMAND})
 endif()
+
+# -------------------------------- SUBDIRECTORIES --------------------------------
+
+# set(EXECUTABLE_NAME_OLD "main_old")
+set(EXECUTABLE_NAME "main")
 
 add_subdirectory(src)
 add_subdirectory(app)

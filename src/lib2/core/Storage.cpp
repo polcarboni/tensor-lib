@@ -1,5 +1,5 @@
-#include "inc/core/Storage.hpp"
-#include "Allocator.hpp"
+#include "core/Storage.hpp"
+#include "core/Allocator.hpp"
 #include <cstring>  // for std::memcpy if needed
 
 namespace tensor {

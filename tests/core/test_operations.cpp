@@ -1,2 +1,2 @@
-#include "Operations.hpp"
-#include "Tensor.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include "TensorLib.hpp"

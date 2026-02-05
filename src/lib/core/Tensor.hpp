@@ -13,6 +13,19 @@
 
 namespace tensor_old {
 
+
+    std::string shape_to_string(const std::vector<size_t>& shape)
+    {
+        std::stringstream ss;
+        ss << "[";
+        for (size_t i = 0; i < shape.size(); ++i) {
+            ss << shape[i] << (i == shape.size() - 1 ? "" : ", ");
+        }
+        ss << "]";
+        return ss.str();
+    }
+
+
     template<typename T>
     class Tensor
     {
@@ -431,6 +444,11 @@ namespace tensor_old {
         //     std::cout << std::endl;
         // }
 
+    // ------------------------------------------------------------------------------------------------------
+    //                                         PRINTING UTILITIES
+    // ------------------------------------------------------------------------------------------------------ 
+
+    
         //TODO-?: can this be used without specifying the parameter
         void print(std::ostream& os = std::cout) const {
             
@@ -515,21 +533,6 @@ namespace tensor_old {
             size_t{1},
             std::multiplies<size_t>()
         );
-    }
-
-    // ------------------------------------------------------------------------------------------------------
-    //                                         PRINTING UTILITIES
-    // ------------------------------------------------------------------------------------------------------ 
-
-    std::string shape_to_string(const std::vector<size_t>& shape)
-    {
-        std::stringstream ss;
-        ss << "[";
-        for (size_t i = 0; i < shape.size(); ++i) {
-            ss << shape[i] << (i == shape.size() - 1 ? "" : ", ");
-        }
-        ss << "]";
-        return ss.str();
     }
 
 

@@ -11,8 +11,17 @@ namespace tensor
         std::vector<size_t> strides_rhs_;    /* Virtual strides for rhs */
     };
     
-    inline std::vector<size_t> broadcast_shapes(const std::vector<size_t>& s1, const std::vector<size_t>& s2);
+    inline std::vector<size_t> broadcast_shapes(const std::vector<size_t>& s1, const std::vector<size_t>& s2)
+    {
+        // dummy
+        return std::vector<size_t>{};
+    }
+
     // TODO: this has to be integrated in the dispatcher function interface
-    inline BroadcastInfo get_broadcast_info(const TensorImpl& lhs, const TensorImpl& rhs);
+    inline BroadcastInfo get_broadcast_info(const TensorImpl& lhs, const TensorImpl& rhs)
+    {
+        // dummy
+        return BroadcastInfo{};
+    }
 
 } // namespace tensor

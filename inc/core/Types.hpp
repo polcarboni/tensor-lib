@@ -15,17 +15,35 @@ namespace tensor
     enum class ScalarType { Float64, Float32, Int64, Int32, Bool };
 
     /* Return the higher type between two scalartypes*/
-    inline constexpr ScalarType promote_types(ScalarType, ScalarType);
+    inline constexpr ScalarType promote_types(ScalarType lhs, ScalarType rhs)
+    {
+        // dummy
+        return lhs;
+    }
 
     /* Runtime bytesize helper function */
-    inline size_t element_size(ScalarType type);
+    inline size_t element_size(ScalarType type)
+    {
 
-    inline std::string to_string(ScalarType type);
+    }
 
-    inline std::ostream& operator<<(std::ostream& os, const ScalarType type);
+    inline std::string to_string(ScalarType type)
+    {
 
+    }
+
+    inline std::ostream& operator<<(std::ostream& os, const ScalarType type)
+    {
+
+    }
+
+    // TODO: no param?
     template<typename T>
-    inline constexpr ScalarType get_scalar_type();
+    inline constexpr ScalarType get_scalar_type()
+    {
+        auto x = ScalarType();
+        return x;
+    }
 
     //  DISPATCHER MACRO
     #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
@@ -45,8 +63,15 @@ namespace tensor
 
     enum class DeviceType { CPU, CUDA };
     
-    inline std::string to_string(DeviceType type);
-    inline std::ostream& operator<<(std::ostream& os, DeviceType type);
+    inline std::string to_string(DeviceType type)
+    {
+
+    }
+
+    inline std::ostream& operator<<(std::ostream& os, DeviceType type)
+    {
+
+    }
 
     // ------------------------------ DEVICE STRUCT  --------------------------------
     
@@ -56,10 +81,24 @@ namespace tensor
         int index = 0;
     };
 
-    inline bool operator==(const Device& lhs, const Device& rhs);   
-    inline bool operator!=(const Device& lhs, const Device& rhs);
+    inline bool operator==(const Device& lhs, const Device& rhs)
+    {
 
-    inline std::string to_string(const Device& device);
-    inline std::ostream& operator<<(std::ostream& os, const Device& device);
+    }  
+
+    inline bool operator!=(const Device& lhs, const Device& rhs)
+    {
+
+    }
+
+    inline std::string to_string(const Device& device)
+    {
+
+    }
+    
+    inline std::ostream& operator<<(std::ostream& os, const Device& device)
+    {
+        
+    }
 
 } // namespace tensor

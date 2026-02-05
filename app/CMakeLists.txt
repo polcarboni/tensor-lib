@@ -1,5 +1,7 @@
-add_executable(${EXECUTABLE_NAME} main.cpp)
+# add_executable(${EXECUTABLE_NAME_OLD} main_old.cpp)
+# target_link_libraries(${EXECUTABLE_NAME_OLD} PRIVATE core_lib_old)
 
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE core_lib)
+add_executable(${EXECUTABLE_NAME} main.cpp)
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE tensor_lib)
 
 install(TARGETS ${EXECUTABLE_NAME})

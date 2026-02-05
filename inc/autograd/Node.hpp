@@ -1,6 +1,7 @@
 #pragma once
 #include "Edge.hpp"
 #include "core/Tensor.hpp"
+#include <vector>
 
 /*
     The concrete implementations of this class contain the operator tensors and the
@@ -8,6 +9,8 @@
     */
 namespace tensor
 {
+    class Tensor;
+    
     class Node : public std::enable_shared_from_this<Node>{
     protected:
         std::vector<Edge> next_edges_;

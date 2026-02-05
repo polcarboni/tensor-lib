@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend.hpp"
 #include "TensorIterator.hpp"
 
 namespace tensor
@@ -32,7 +33,10 @@ namespace tensor
 
     template<typename Op>
     struct ComparisonDispatcher {
-        static void call(TensorIterator& iter, const std::string& name);
+        static void call(TensorIterator& iter, const std::string& name)
+        {
+
+        }
     };
 
     // ------------------------------------------------ element-wise dispatcher --------------------------------------------
@@ -40,17 +44,26 @@ namespace tensor
     /* Abstract backend dispatcher to be specialized for CPU and CUDA backends */
     template <template <typename> class Op>
     struct UnaryElementwiseDispatcher {
-        static void call(TensorIterator& iter, const std::string& name);
+        static void call(TensorIterator& iter, const std::string& name)
+        {
+
+        }
     };
 
     template <template <typename> class Op>
     struct BinaryElementwiseDispatcher {
-        static void call(TensorIterator& iter, const std::string& name);
+        static void call(TensorIterator& iter, const std::string& name)
+        {
+
+        }
     };
 
     template <template <typename> class Op>
     struct TernaryElementwiseDispatcher {
-        static void call(TensorIterator& iter, const std::string& name);
+        static void call(TensorIterator& iter, const std::string& name)
+        {
+
+        }
     };
 
 
@@ -59,7 +72,10 @@ namespace tensor
     /* Reduction requires specific iterator configurations where the output has fewer dims */
     struct ReductionDispatcher {
         template<typename scalar_t, typename acc_t>
-        static void call(TensorIterator& iter, const std::string& name, acc_t identity);
+        static void call(TensorIterator& iter, const std::string& name, acc_t identity)
+        {
+            
+        }
     };
     
 } // namespace tensor
