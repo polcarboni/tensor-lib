@@ -1,16 +1,18 @@
-add_library(tensor_lib STATIC "")
-
-# Allows the linker to mix C++ and CUDA
-set_target_properties(tensor_lib PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CUDA_VISIBILITY_PRESET hidden
-    CXX_VISIBILITY_PRESET hidden)
-
-target_include_directories(tensor_lib PUBLIC ${CMAKE_SOURCE_DIR}/inc)
+add_subdirectory(core)
+add_subdirectory(ops)
+add_subdirectory(autograd)
 
 if (ENABLE_CUDA)
-    set_target_properties(tensor_lib PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+    add_subdirectory(cuda)
 endif()
 
-# add_subdirectory(lib)
-add_subdirectory(lib2)
+add_library(tensor_lib INTERFACE)
+
+target_link_libraries(tensor_lib INTERFACE
+    tensor_core
+    tensor_ops
+    tensor_autograd)
+
+if (ENABLE_CUDA)
+    target_link_libraries(tensor_lib INTERFACE tensor_cuda)
+endif()

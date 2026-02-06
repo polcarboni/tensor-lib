@@ -1,4 +1,5 @@
 #include "autograd/Edge.hpp"
+#include "autograd/Node.hpp"
 
 namespace tensor
 {

@@ -2,7 +2,7 @@
 // #include "ops/Functors.hpp"
 // #include "ops/OpsImpl.hpp"
 
-#include "TensorOps.hpp"
+#include "ops/TensorOps.hpp"
 
 namespace tensor
 {

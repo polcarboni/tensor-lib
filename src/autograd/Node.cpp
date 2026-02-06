@@ -1,7 +1,9 @@
 #include "autograd/Node.hpp"
+#include "autograd/Edge.hpp"
 
 namespace tensor
 {
+
     Node::Node() 
     {
         // None
