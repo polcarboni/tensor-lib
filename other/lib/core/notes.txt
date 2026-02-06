@@ -1,0 +1,32 @@
+HOW do operations worK?
+
+API call:
+Functions like 'Tensor add', 'Tensor mul', sum, mean all cal an implemenation
+like: unary_op_impl (depending on the number of operands), with a dedicated
+one for the reduction operators.
+
+What are these for and why matmul does not use it?
+
+All of these are pointwise operations that iterate the execution of operations
+with loops (ora parallel execution) over all the elements.
+(Matmul is different since it copmutes vector product and sum reduction).
+
+n-nary_op_impl:
+Create the result tensor on the correct device, when more tensors are 
+used by the operations checks the correctness to perform it. (type, device, ...)
+
+They pass the result and the operands to the 'iterator' constructor through
+its 'config' and then they call the templated operation through the 
+correct 'dispatcher':
+
+TensorIteratorconfig: 
+Has reference wrappers with inputs and outputs tensor. Can add tensors
+as input, ouput or as reduction: I do not know how this works internally.
+
+This config is used to buil the TensorIterator class. 
+
+launchers:
+The iterator contains the result and the operands. It is passed to the
+correct launcher with also the operation_name (got as param from the impl).
+
+The call function I assume uses the Functor for computing the oepration.
