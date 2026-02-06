@@ -13,5 +13,9 @@
 #include "ops/Backend.hpp"
 #include "ops/OpsImpl.hpp"
 #include "ops/Matmul.hpp"
+#include "ops/TensorOps.hpp"
 
-#include "TensorOps.hpp"
+#include "autograd/Node.hpp"
+#include "autograd/Edge.hpp"
+#include "autograd/AutogradMeta.hpp"
+#include "autograd/AutogradEngine.hpp"

@@ -1,11 +1,15 @@
 #pragma once
-#include "core/Tensor.hpp"
-#include "Node.hpp"
+// #include "core/Tensor.hpp"
+// #include "Node.hpp"
 #include <memory>
+#include <cstdint>
 
 namespace tensor
 {
     // ------------------------------ AUTOGRAD META STRUCT  --------------------------------
+    
+    class Tensor;
+    class Node;
     
     struct AutogradMeta {
         std::shared_ptr<Tensor> grad_ = nullptr;    

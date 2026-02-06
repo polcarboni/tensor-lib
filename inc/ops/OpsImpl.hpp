@@ -6,6 +6,8 @@
 
 namespace tensor
 {
+    std::vector<size_t> broadcast_shapes(const std::vector<size_t>&, const std::vector<size_t>&);
+
     template <template <typename> class Op>
     Tensor nullary_op_impl(std::vector<size_t> shape, ScalarType dtype, Device device, const std::string& op_name)
     {
