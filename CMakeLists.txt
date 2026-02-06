@@ -5,6 +5,8 @@ project(
     VERSION 1.0.0
     LANGUAGES CXX)
 
+include_directories(${CMAKE_SOURCE_DIR}/inc)
+
 option(ENABLE_TESTING "Enable unit test building with Catch2" ON)
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
 option(ENABLE_CUDA "Enable NVIDIA CUDA support" ON)
@@ -65,9 +67,6 @@ endif()
 
 # -------------------------------- SUBDIRECTORIES --------------------------------
 
-# set(EXECUTABLE_NAME_OLD "main_old")
-set(EXECUTABLE_NAME "main")
-
 add_subdirectory(src)
 add_subdirectory(app)
 
@@ -76,4 +75,3 @@ set(CMAKE_CXX_CLANG_TIDY "")
 if(ENABLE_TESTING)
     add_subdirectory(tests)
 endif()
-
