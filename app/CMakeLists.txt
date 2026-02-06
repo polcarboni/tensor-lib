@@ -1,7 +1,5 @@
-# add_executable(${EXECUTABLE_NAME_OLD} main_old.cpp)
-# target_link_libraries(${EXECUTABLE_NAME_OLD} PRIVATE core_lib_old)
+add_executable(main main.cpp)
+target_link_libraries(main PRIVATE tensor_lib)
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/inc)
 
-add_executable(${EXECUTABLE_NAME} main.cpp)
-target_link_libraries(${EXECUTABLE_NAME} PRIVATE tensor_lib)
-
-install(TARGETS ${EXECUTABLE_NAME})
+install(TARGETS main)
