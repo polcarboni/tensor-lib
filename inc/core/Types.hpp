@@ -13,18 +13,7 @@ namespace tensor
     // ------------------------------------------------ SCALAR TYPE ------------------------------------------------ 
 
     enum class ScalarType { Float64, Float32, Int64, Int32, Bool };
-
-    /* Return the higher type between two scalartypes*/
-    inline constexpr ScalarType promote_types(ScalarType t1, ScalarType t2)
-    {
-        if (t1 == t2) return t1;
-        if (t1 == ScalarType::Float64 || t2 == ScalarType::Float64) return ScalarType::Float64;
-        if (t1 == ScalarType::Float32 || t2 == ScalarType::Float32) return ScalarType::Float32;
-        if (t1 == ScalarType::Int64   || t2 == ScalarType::Int64)   return ScalarType::Int64;
-        if (t1 == ScalarType::Int32   || t2 == ScalarType::Int32)   return ScalarType::Int32;
-        return ScalarType::Bool;
-    }
-
+    
     /* Runtime bytesize helper function */
     inline size_t element_size(ScalarType type)
     {
@@ -36,6 +25,16 @@ namespace tensor
             case ScalarType::Bool:    return sizeof(bool);
             default: throw std::invalid_argument("Unsupported scalar type");
         }
+    }
+
+    inline constexpr ScalarType promote_types(ScalarType t1, ScalarType t2)
+    {
+        if (t1 == t2) return t1;
+        if (t1 == ScalarType::Float64 || t2 == ScalarType::Float64) return ScalarType::Float64;
+        if (t1 == ScalarType::Float32 || t2 == ScalarType::Float32) return ScalarType::Float32;
+        if (t1 == ScalarType::Int64   || t2 == ScalarType::Int64)   return ScalarType::Int64;
+        if (t1 == ScalarType::Int32   || t2 == ScalarType::Int32)   return ScalarType::Int32;
+        return ScalarType::Bool;
     }
 
     inline std::string to_string(ScalarType type)
