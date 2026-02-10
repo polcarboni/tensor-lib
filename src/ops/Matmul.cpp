@@ -22,10 +22,10 @@ namespace tensor
             throw std::runtime_error("matmul: tensors must be at least 2D");
         }
 
-        int64_t M = lhs.shape()[lhs.dims() - 2];
+        int64_t M  = lhs.shape()[lhs.dims() - 2];
         int64_t K1 = lhs.shape()[lhs.dims() - 1];
         int64_t K2 = rhs.shape()[lhs.dims() - 2];
-        int64_t N = rhs.shape()[lhs.dims() - 1];
+        int64_t N  = rhs.shape()[lhs.dims() - 1];
 
         if (K1 != K2) {
             throw std::runtime_error("matmul: size_mismatch");
