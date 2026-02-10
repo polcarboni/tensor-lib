@@ -58,12 +58,14 @@ namespace tensor
         
         // ---------------------------------- empty constructors ---------------------------------- 
         
-        Tensor();   /* Empty tensor: no TensorImpl member */
+        Tensor();                                       /* Empty tensor: no TensorImpl member */
         Tensor(const std::vector<size_t>& shape);
-        Tensor(const std::vector<size_t>& shape, ScalarType dtype = ScalarType::Float32, Device device = {DeviceType::CPU, 0});
+        Tensor(const std::vector<size_t>& shape, ScalarType dtype = ScalarType::Float32,
+               Device device = {DeviceType::CPU, 0});
+
         ~Tensor();
-        Tensor(const Tensor& other);    /* Shallow copy (view) */
-        Tensor clone() const;   /* Deep copy */
+        Tensor(const Tensor& other);                    /* Shallow copy (view) */
+        Tensor clone() const;                           /* Deep copy */
 
         // ---------------------------------- overloaded (?) constructors ---------------------------------- 
 

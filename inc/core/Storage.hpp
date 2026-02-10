@@ -21,22 +21,17 @@ namespace tensor
         Device device_;
         
         static Allocator* get_allocator(DeviceType type);
-        void copy_data_from(const void * src);
+        void copy_data_from(const void * src);      /* to be called only after the allocation */
 
     public:
 
-        /* Uninitialized storage constructor (only allocates space) */
-        Storage(size_t size_bytes, Device device);
-        /* Constructor with initialization from host data */
-        Storage(size_t size_bytes, Device device, const void* src);
+        Storage(size_t size_bytes, Device device);                      /* Uninitialized storage constructor (only allocates space) */
+        Storage(size_t size_bytes, Device device, const void* src);     /* Constructor with initialization from host data */
+        Storage(const Storage& other);                                  /* Copy constructor */
         ~Storage();
-        Storage(const Storage& other); // Copy constructor
 
-        
-        Storage& operator=(const Storage& other);   // Copy assignment
-    
-        //  Move constructor
-        Storage(Storage&& other) noexcept;
+        Storage& operator=(const Storage& other);       /* Copy assignment */
+        Storage(Storage&& other) noexcept;              /* Move constructor */
         Storage& operator=(Storage&& other) noexcept;
 
         Storage clone() const;
