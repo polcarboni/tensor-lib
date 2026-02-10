@@ -291,7 +291,6 @@ namespace tensor_helper
         void* data_ = nullptr;
         size_t size_bytes_ = 0;
         Device device_;
-        // std::shared_ptr<Allocator> allocator_; //TODO-fix: every single storage creates an allocator, change to static method
         
         static Allocator* get_allocator(DeviceType type) {
             if (type == DeviceType::CPU) {
