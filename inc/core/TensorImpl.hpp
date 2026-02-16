@@ -328,6 +328,26 @@ namespace tensor
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
 
         std::unique_ptr<TensorImpl> reshape(std::initializer_list<size_t>& new_shape);
+
+        std::vector<size_t>& get_shape()
+        {
+            return shape_;
+        }
+        
+        ScalarType get_dtype()
+        {
+            return dtype_;
+        }
+
+        Device get_device()
+        {
+            return device_;
+        }
+
+        bool requires_grad()
+        {
+            return requires_grad_;
+        }
     };
 
     inline std::string to_string(const TensorImpl& tensor)
@@ -342,46 +362,31 @@ namespace tensor
         else {
             oss << "  Storage: null" << std::endl;    
         }
-  // Data type
-    oss << "  DType: " << to_string(tensor.dtype_) << "\n";
-    
-    // Device
-    oss << "  Device: " << to_string(tensor.device_) << "\n";
-    
-    // Offset
-    oss << "  Offset: " << tensor.offset_ << "\n";
-    
-    // Shape
-    oss << "  Shape: [";
-    for (size_t i = 0; i < tensor.shape_.size(); ++i) {
-        if (i > 0) oss << ", ";
-        oss << tensor.shape_[i];
-    }
-    oss << "]\n";
-    
-    // Strides
-    oss << "  Strides: [";
-    for (size_t i = 0; i < tensor.strides_.size(); ++i) {
-        if (i > 0) oss << ", ";
-        oss << tensor.strides_[i];
-    }
-    oss << "]\n";
-    
-    // Total size
-    oss << "  Total Size: " << tensor.total_size_ << " elements\n";
-    
-    // Contiguous flag
-    oss << "  Contiguous: " << (tensor.contiguous_ ? "true" : "false") << "\n";
-    
-    // Autograd information
-    oss << "  Requires Grad: " << (tensor.requires_grad_ ? "true" : "false") << "\n";
-    oss << "  Autograd Meta: " << (tensor.autograd_meta_ ? "present" : "null");
-    
-    oss << "\n}";
-    
-    return oss.str();
-}
 
+        oss << "  DType: " << to_string(tensor.dtype_) << "\n";     // Device
+        oss << "  Device: " << to_string(tensor.device_) << "\n";   // Device
+        oss << "  Offset: " << tensor.offset_ << "\n";              // Offsets
+        oss << "  Shape: [";                                        // Shape
+        for (size_t i = 0; i < tensor.shape_.size(); ++i) {
+            if (i > 0) oss << ", ";
+            oss << tensor.shape_[i];
+        }
+        oss << "]\n";
+        oss << "  Strides: [";                                      // Strides
+        for (size_t i = 0; i < tensor.strides_.size(); ++i) {
+            if (i > 0) oss << ", ";
+            oss << tensor.strides_[i];
+        }
+        oss << "]\n";
+        oss << "  Total Size: " << tensor.total_size_ << " elements\n";                     //size
+        oss << "  Contiguous: " << (tensor.contiguous_ ? "true" : "false") << "\n";         // Contiguous flag
+        oss << "  Requires Grad: " << (tensor.requires_grad_ ? "true" : "false") << "\n";   // Autograd information
+        oss << "  Autograd Meta: " << (tensor.autograd_meta_ ? "present" : "null");
+
+        oss << "\n}";
+        
+        return oss.str();
+    }
 
     std::ostream& operator<<(std::ostream& os, const TensorImpl& tensor)
     {
