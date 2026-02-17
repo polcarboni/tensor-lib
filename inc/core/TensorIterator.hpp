@@ -16,7 +16,10 @@ namespace tensor
     class TensorIterator {
     private: 
         std::vector<std::shared_ptr<TensorImpl>> inputs_;
-        std::shared_ptr<TensorImpl> output_;
+        // std::shared_ptr<TensorImpl> output_;
+        std::vector<std::shared_ptr<TensorImpl>> outputs_;
+        // std::vector<std::shared_ptr<TensorImpl>> output_grads_;
+        // NO: grads are sotred in outputs_[i]->autograd_meta_->grad_
 
         ScalarType common_dtype_;
         Device common_device_;
@@ -37,24 +40,24 @@ namespace tensor
          */
         ScalarType compute_common_dtype_()
         {
-            if (inputs_.empty() && !output_) {
+            if (inputs_.empty() && outputs_.empty()) {
                 return ScalarType::Float32;
             }
 
             ScalarType promoted = ScalarType::Bool;
             
-            if (output_) {
-                promoted = output_->get_dtype();
-            }
-
             for (const auto& input : inputs_)
             {
                 if(!input) continue;
                 promoted = promote_types(promoted, input->get_dtype());
             }
             
-            promoted = promote_types(promoted, output_->get_dtype());
-
+            for (const auto& output : outputs_)
+            {
+                if(!output) continue;
+                promoted = promote_types(promoted, output->get_dtype());
+            }
+            
             return promoted;
         }
 
@@ -67,9 +70,18 @@ namespace tensor
             Device common_dev{};
             bool device_initialized = false;
             
-            if (output_) {
-                common_dev = output_->get_device();
-                device_initialized = true;
+            for (const auto& output: outputs_)
+            {
+                if(!output) continue;
+
+                if(!device_initialized) {
+                    common_dev = output->get_device();
+                    device_initialized = true;
+                } else {
+                    if (output->get_device() != common_dev) {
+                        throw std::runtime_error("TensorIterator: Expected tensor to be on the same device");
+                    }
+                }
             }
 
             for (const auto& input : inputs_)
@@ -101,7 +113,12 @@ namespace tensor
          * has requires_grad as true.
          */
         bool compute_requires_grad_() {
-            if (output_) return output_->requires_grad();
+
+            for (const auto& output : outputs_) {
+                if(output && output->requires_grad()) {
+                    return true;
+                }
+            }
 
             for (const auto& input: inputs_) {
                 if (input->requires_grad()) {
@@ -155,7 +172,7 @@ namespace tensor
             } if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
                 return broadcast_shapes_scalar_();
             } if constexpr (Op::iter_kind() == IterationKind::COPY) {
-                
+                return broadcast_shapes_copy_();
             }
         }
 
@@ -163,10 +180,9 @@ namespace tensor
          * Defines the common resulting shape for all the input tensors. Provide different shape computation
          * paths based on the required operation types.
          */
+        template <typename Op>
         std::vector<size_t> broadcast_shapes_elementwise_()
         {
-            // TODO: requires the use of the REDUCTION path and MATMUL
-
             if (inputs_.empty()) {
                 return {};
             }
@@ -203,21 +219,21 @@ namespace tensor
                 }
             }
 
-            // Validate the output shape
-            if (output_) {
-                const auto& output_shape = output_->get_shape();
+            // // Validate the output shape
+            // if (output_) {
+            //     const auto& output_shape = output_->get_shape();
 
-                if (output_shape.size() != result_shape.size()) {
-                    throw std::runtime_error("...Shape dimensionality mismatch...");
-                }
+            //     if (output_shape.size() != result_shape.size()) {
+            //         throw std::runtime_error("...Shape dimensionality mismatch...");
+            //     }
 
-                for (size_t i = 0; i < result_shape.size(); ++i) {
-                    if (output_shape[i] != result_shape[i]) {
-                        throw std::runtime_error("...Mismatch in one dimension...");
-                    }
-                }
-            }
-            return result_shape;
+            //     for (size_t i = 0; i < result_shape.size(); ++i) {
+            //         if (output_shape[i] != result_shape[i]) {
+            //             throw std::runtime_error("...Mismatch in one dimension...");
+            //         }
+            //     }
+            // }
+            // return result_shape;
         }
 
         template <typename Op>
@@ -226,7 +242,11 @@ namespace tensor
         template <typename Op>
         std::vector<size_t> broadcast_shapes_matmul_();
 
+        template <typename Op>
         std::vector<size_t> broadcast_shapes_scalar_();
+        
+        template <typename Op>
+        std::vector<size_t> broadcast_shapes_copy_();
 
 
         // -------------------------------------------------------------------------------------------------------------  
@@ -242,12 +262,28 @@ namespace tensor
                 return compute_strides_reduction_<Op>();
             } else if constexpr (Op:iter_kind() == IterationKind::MATMUL) {
                 return compute_strides_matmul_<Op>();
+            } else if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
+                return compute_strides_scalar_();
+            } else if constexpr (Op:iter_kind() == IterationKind::COPY) {
+                return compute_strides_copy_();
             }
         }
 
 
+        template <typename Op>
+        std::vector<std::vector<size_t>> compute_strides_elementwise_();
         
-
+        template <typename Op>
+        std::vector<std::vector<size_t>> compute_strides_reduction_();
+        
+        template <typename Op>
+        std::vector<std::vector<size_t>> compute_strides_matmul_();
+        
+        template <typename Op>
+        std::vector<std::vector<size_t>> compute_strides_scalar_();
+        
+        template <typename Op>
+        std::vector<std::vector<size_t>> compute_strides_copy_();
 
 
 
@@ -272,12 +308,11 @@ namespace tensor
         void add_input(const TensorImpl& tensor)
         {
             inputs_.push_back(std::make_shared<TensorImpl>(tensor));
-            // ...
         }
         
         void add_output(TensorImpl& tensor)
         {
-            output_ = std::make_shared<TensorImpl>(tensor);
+            outputs_.push_back(std::make_shared<TensorImpl>(tensor));
         }
         
         template <typename Op>
@@ -285,35 +320,57 @@ namespace tensor
         {
             validate_inputs_metadata_<Op>();
 
-            broadcasted_shape_ = broadcast_shapes_<Op>();
-            
-            if (output_) {
-                output_shape_ = output_->get_shape();
-            } else {
+            if (Op::get_direction() == Direction::FORWARD)
+            {
+                if (outputs_.size() > 1) {
+                    throw std::runtime_error("Forward operation expects at most 1 output");
+                }
+
+                broadcasted_shape_ = broadcast_shapes_<Op>();
                 output_shape_ = broadcasted_shape_;
+
+                if (outputs_.empty()) {
+                    outputs_.resize(1);
+                }
+
+                if (!outputs_[0]) {
+                    outputs_[0] = std::make_shared<TensorImpl>(output_shape_, common_dtype_, common_device_, requires_grad_);
+                }
+
+                if(requires_grad_) {
+                    // Initialize grads: outputs_[0]->init_autograd_meta()
+                    // Store input shapes in output_tensor->autograd_meta_->grad_fn_->input_shapes_;
+                    //      required for backward pass
+                }
             }
             
-            if (!output_) {
-                output_ = std::make_shared<TensorImpl>(output_shape_, common_device_, common_dtype_, requires_grad_);
+            // TODO: Not sure I have to check again. I assume I have to consider it the same way as a forward.
+            else if (Op::get_direction() == Direction::BACKWARD) {
+
+                if (inputs_.size() != 1) {
+                    throw std::runtime_error("Backward operations expect 1 input (output gradient). Got: " + std::to_string(inputs_.size()))
+                }
+
+                if (outputs_.size() != Op::num_inputs()) {
+                    throw std::runtime_error("Expected ...")
+                }
+
+                for (size_t i = 0; i < inputs_.size(); i++) {
+
+                    if (!outputs_[i]) {
+                        outputs_[i] = std::make_shared<TensorImpl>(input_shapes_[i], common_dtype_, common_device_, false);
+                    }   
+                }
             }
 
             broadcasted_strides_ = compute_broadcast_strides_<Op>();
             is_contiguous_ = check_contiguous();
         }
 
-        // Which one and why?
-        std::shared_ptr<TensorImpl> get_outputt()
+        
+        std::vector<std::shared_ptr<TensorImpl>>& get_outputs()
         {
-            return output_;
-        }
-
-        TensorImpl& get_output()
-        {
-            if (!output_) {
-                throw std::runtime_error("Output tensor not initialized");
-            }
-
-            return *output_;
+            return outputs_;
         }
 
         // --------------------------- KERNEL ---------------------------
@@ -323,6 +380,9 @@ namespace tensor
         
         void* output_data();
         const void* output_data() const;
+        
+        void* output_grad_data();
+        const void* output_grad_data() const;
 
     };
 
