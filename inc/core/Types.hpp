@@ -108,7 +108,7 @@ namespace tensor
     
 
     struct Device {
-        DeviceType type;
+        DeviceType type = DeviceType::CPU;
         int index = 0;
     };
 
