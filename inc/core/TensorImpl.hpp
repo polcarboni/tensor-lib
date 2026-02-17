@@ -162,6 +162,7 @@ namespace tensor
         TensorImpl(const std::vector<size_t>& shape,
                    ScalarType dtype = ScalarType::Float32,
                    Device device = {DeviceType::CPU, 0},
+                   bool requires_grad = false,
                    void* src = nullptr);
         
 
