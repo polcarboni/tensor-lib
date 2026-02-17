@@ -8,14 +8,16 @@ namespace tensor
 {
     // ------------------------------ AUTOGRAD META STRUCT  --------------------------------
     
-    class Tensor;
+    class TensorImpl;
     class Node;
     
     struct AutogradMeta {
-        std::shared_ptr<Tensor> grad_ = nullptr;    
+        std::shared_ptr<TensorImpl> grad_ = nullptr;    
         std::shared_ptr<Node> grad_fn_ = nullptr;
         std::weak_ptr<Node> grad_accumulator_;
         uint32_t version_ = 0;
+
+        std::unique_ptr<AutogradMeta> clone() const;
     };
 
 } // namespace tensor
