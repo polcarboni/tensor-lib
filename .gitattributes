@@ -1,1 +1,4 @@
 other/** linguist-vendored
+build/** linguist-vendored
+.vscode/** linguist-vendored
+.cache/** linguist-vendored
