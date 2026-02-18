@@ -9,6 +9,7 @@ namespace tensor
     // struct ScalarType;
     // struct Device;
     // class TensorImpl;
+    struct FillOpBase;
 
     enum class IterationKind { ELEMENT_WISE, REDUCTION, MATMUL, SCALAR, COPY };
     enum class Direction { FORWARD, BACKWARD };
@@ -155,6 +156,7 @@ namespace tensor
         // ------------------------------------------------------------------------------------------------------------- 
 
 
+        // TODO: consider separating broadcasting and validation
         template <typename Op>
         std::vector<size_t> broadcast_shapes_()
         {
@@ -365,8 +367,18 @@ namespace tensor
                     throw std::runtime_error("Forward operation expects at most 1 output");
                 }
 
-                broadcasted_shape_ = broadcast_shapes_<Op>();
-                output_shape_ = broadcasted_shape_;
+                // Filling operations use the provided shape argument (no inputs)
+                if constexpr (std::is_base_of_v<FillOpBase, Op>) {
+                    if (shape.empty()) {
+                        throw std::runtime_error("Fill operation requires an explicit output shape");
+                    }
+                    output_shape_ = std::move(shape);
+                
+                } else {
+    
+                    broadcasted_shape_ = broadcast_shapes_<Op>();
+                    output_shape_ = broadcasted_shape_;
+                }
 
                 if (outputs_.empty()) {
                     outputs_.resize(1);
