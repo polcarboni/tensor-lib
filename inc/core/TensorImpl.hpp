@@ -203,12 +203,28 @@ namespace tensor
         // No indexing on CUDA for the moment 
 
         // Data accessor helper
-        // TODO: provide const version
         template <typename T>
         T* data_ptr()
         {
             if (!storage_) return nullptr;
             return reinterpret_cast<T*>(static_cast<char*>(storage_->data()) + (offset_ * element_size(dtype_)));
+        }
+
+        void* data_ptr() {
+            if (!storage_) return nullptr;
+            return static_cast<char*>(storage_->data()) + (offset_ * element_size(dtype_));
+        }
+
+        const void* data_ptr() const
+        {
+            if (!storage_) return nullptr;
+            return static_cast<const char*>(storage_->data()) + (offset_ * element_size(dtype_));
+        }
+
+        template <typename T>
+        const T* data_ptr() const
+        {
+            return static_cast<const *T>(data_ptr());
         }
 
         // TODO: provide const version
@@ -349,6 +365,19 @@ namespace tensor
         {
             return requires_grad_;
         }
+
+
+    //     std::shared_ptr<TensorImpl> to(ScalarType target_dtype) const
+    //     {
+    //         if (this->dtype_ == target_dtype) {
+    //             return std::make_shared<TensorImpl>(*this);
+    //         }
+
+    //         auto new_tensor = std::make_shared<TensorImpl>(this->shape_, target_dtype, this->device_);
+            
+    //         if (this->total_size_ == 0) return new_tensor;
+    //     }
+
     };
 
     inline std::string to_string(const TensorImpl& tensor)
