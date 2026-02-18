@@ -256,11 +256,11 @@ namespace tensor
         template <typename Op>
         std::vector<std::vector<size_t>> compute_broadcast_strides_()
         {
-            if constexpr (Op:iter_kind() == IterationKind::ELEMENT_WISE) {
+            if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) {
                 return compute_strides_elementwise_();
-            } else if constexpr (Op:iter_kind() == IterationKind::REDUCTION) {
+            } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
                 return compute_strides_reduction_<Op>();
-            } else if constexpr (Op:iter_kind() == IterationKind::MATMUL) {
+            } else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
                 return compute_strides_matmul_<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
                 return compute_strides_scalar_();
@@ -271,19 +271,54 @@ namespace tensor
 
 
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_elementwise_();
+        std::vector<std::vector<size_t>> compute_strides_elementwise_()
+        {
+            if (Op::get_direction() == Direction::FORWARD) {
+
+            }
+
+            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_reduction_();
+        std::vector<std::vector<size_t>> compute_strides_reduction_()
+        {
+            if (Op::get_direction() == Direction::FORWARD) {
+
+            }
+
+            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_matmul_();
+        std::vector<std::vector<size_t>> compute_strides_matmul_()
+        {
+            if (Op::get_direction() == Direction::FORWARD) {
+
+            }
+
+            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_scalar_();
+        std::vector<std::vector<size_t>> compute_strides_scalar_()
+        {
+            if (Op::get_direction() == Direction::FORWARD) {
+
+            }
+
+            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_copy_();
+        std::vector<std::vector<size_t>> compute_strides_copy_()
+        {
+            if (Op::get_direction() == Direction::FORWARD) {
+
+            }
+
+            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        }
 
 
 
@@ -315,6 +350,10 @@ namespace tensor
             outputs_.push_back(std::make_shared<TensorImpl>(tensor));
         }
         
+        /**
+         * Checks correctenss by validating the inputs, computing the broadcasted shape and broadcasted strides
+         * used by the kernels for accessing the tensor Storage elements.  
+         */
         template <typename Op>
         void build(std::vector<size_t>& shape = {})
         {
@@ -344,22 +383,25 @@ namespace tensor
                 }
             }
             
-            // TODO: Not sure I have to check again. I assume I have to consider it the same way as a forward.
             else if (Op::get_direction() == Direction::BACKWARD) {
 
-                if (inputs_.size() != 1) {
-                    throw std::runtime_error("Backward operations expect 1 input (output gradient). Got: " + std::to_string(inputs_.size()))
+                if (inputs_.size() != Op::num_outputs()) {
+                    throw std::runtime_error("Backward ERROR ....")
                 }
 
                 if (outputs_.size() != Op::num_inputs()) {
-                    throw std::runtime_error("Expected ...")
+                    throw std::runtime_error("Expected a grad tensor per forward input.");
                 }
 
-                for (size_t i = 0; i < inputs_.size(); i++) {
+                for (size_t i = 0; i < Op::num_inputs(); i++) {
 
                     if (!outputs_[i]) {
-                        outputs_[i] = std::make_shared<TensorImpl>(input_shapes_[i], common_dtype_, common_device_, false);
-                    }   
+                        throw std::runtime_error("Backward pass expects preallocatd tensors ...");
+                    } 
+                    
+                    if (!outputs_[i]->requires_grad()) {
+                        throw std::runtime_error("Backward: tensor has no requires_grad_ ...");
+                    }
                 }
             }
 
