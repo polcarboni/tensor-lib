@@ -367,7 +367,7 @@ namespace tensor
                     throw std::runtime_error("Forward operation expects at most 1 output");
                 }
 
-                // Filling operations use the provided shape argument (no inputs)
+                // Filling operations use the provided shape argument (no broadcasting)
                 if constexpr (std::is_base_of_v<FillOpBase, Op>) {
                     if (shape.empty()) {
                         throw std::runtime_error("Fill operation requires an explicit output shape");
@@ -375,7 +375,6 @@ namespace tensor
                     output_shape_ = std::move(shape);
                 
                 } else {
-    
                     broadcasted_shape_ = broadcast_shapes_<Op>();
                     output_shape_ = broadcasted_shape_;
                 }
@@ -427,17 +426,42 @@ namespace tensor
             return outputs_;
         }
 
-        // --------------------------- KERNEL ---------------------------
-
-        void* input_data(int idx);
+        // --------------------------- KERNEL ACCESSORS ---------------------------
+        
+        // accessors should cast to common_dtype_
+        
+        void* input_data(int idx)
+        {
+            if (idx < 0 || static_cast<size_t>(idx) >= inputs_.size())
+                throw std::out_of_range("input_data: out_of range");
+            return inputs_[idx]->data_ptr();
+        }
         const void* input_data(int idx) const;
         
-        void* output_data();
+        void* output_data(int idx)
+        {
+            if (idx < 0 || idx >= static_cast<int>(outputs_.size()))
+            throw std::out_of_range("output_data: index out of range");
+            return outputs_[idx]->data_ptr();
+        }
         const void* output_data() const;
         
         void* output_grad_data();
         const void* output_grad_data() const;
+        
+        // --------------------------- TYPED KERNEL ACCESSORS ---------------------------
 
+        template <typename T>
+        T* input_ptr(int idx)
+        {
+            return static_cast<T*>(input_data(idx));
+        }
+
+        template <typename T>
+        T* output_ptr(int idx = 0)
+        {
+            return static_cast<T*>(output_data(idx));
+        }
     };
 
 } //namespace tensor
