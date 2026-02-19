@@ -12,7 +12,7 @@ namespace tensor
 
     // ------------------------------------------------ SCALAR TYPE ------------------------------------------------ 
 
-    enum class ScalarType { Float64, Float32, Int64, Int32, Bool };
+    enum class ScalarType { Float64, Float32, Int64, Int32, Bool, EMPTY };
     
     /* Runtime bytesize helper function */
     inline size_t element_size(ScalarType type)
@@ -72,17 +72,32 @@ namespace tensor
         }
     }
 
+    /* This version return the values but for the moment I do not need it (aving thi because I will forget about this)
+    // //  DISPATCHER MACRO
+    // #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
+    //     [&] { \
+    //         switch(TYPE) { \
+    //             case ScalarType::Float32: {using scalar_t = float; return __VA_ARGS__(); break; } \
+    //             case ScalarType::Float64: {using scalar_t = double; return __VA_ARGS__(); break; } \
+    //             case ScalarType::Int32: {using scalar_t = int32_t; return __VA_ARGS__(); break; } \
+    //             case ScalarType::Int64: {using scalar_t = int64_t; return __VA_ARGS__(); break; } \
+    //             case ScalarType::Bool: {using scalar_t = bool; return __VA_ARGS__(); break; } \
+    //             default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE)); \
+    //             } \
+    //         } ()
+    */
+
     //  DISPATCHER MACRO
-    #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
-        [&] { \
-            switch(TYPE) { \
-                case ScalarType::Float32: {using scalar_t = float; return __VA_ARGS__(); break; } \
-                case ScalarType::Float64: {using scalar_t = double; return __VA_ARGS__(); break; } \
-                case ScalarType::Int32: {using scalar_t = int32_t; return __VA_ARGS__(); break; } \
-                case ScalarType::Int64: {using scalar_t = int64_t; return __VA_ARGS__(); break; } \
-                case ScalarType::Bool: {using scalar_t = bool; return __VA_ARGS__(); break; } \
-                default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE)); \
-                } \
+    #define DISPATCH_ALL_TYPES(TYPE, NAME, ...)                                                                     \
+        [&] {                                                                                                       \
+            switch(TYPE) {                                                                                          \
+                case ScalarType::Float32: {using scalar_t = float;   __VA_ARGS__(); break; }                        \
+                case ScalarType::Float64: {using scalar_t = double;  __VA_ARGS__(); break; }                        \
+                case ScalarType::Int32:   {using scalar_t = int32_t; __VA_ARGS__(); break; }                        \
+                case ScalarType::Int64:   {using scalar_t = int64_t; __VA_ARGS__(); break; }                        \
+                case ScalarType::Bool:    {using scalar_t = bool;    __VA_ARGS__(); break; }                        \
+                default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE));   \
+                }                                                                                                   \
             } ()
 
 
