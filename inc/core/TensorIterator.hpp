@@ -275,11 +275,44 @@ namespace tensor
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_elementwise_()
         {
-            if (Op::get_direction() == Direction::FORWARD) {
+            std::vector<std::vector<size_t>> strides;
 
+            if constexpr (Op::get_direction() == Direction::FORWARD) {
+                strides.reserve(inputs_.size() + outputs_.size());
+
+                for (const auto& operand : inputs_) {
+                    std::vector<size_t> operand_strides;
+                    if (operand->is_contiguous()) {
+                        // strides from shape
+                    } else {
+                        // strides from operand metadata
+                    }
+
+                    for (size_t i = 0; i < broadcasted_shape_.size(); ++i) {
+                        if(/* NOT SURE ABOUT THIS CONDITION */) {
+                            operand_strides[i] = 0;
+                        }
+                    }
+                    strides.push_back(std::move(operand_strides));
+                }
+
+                for (const auto& operand : outputs_) {
+                    std::vector<size_t> operand_strides;
+                    if(operand->is_contiguous()) {
+
+                    } else {
+
+                    }
+
+                    strides.push_back(std::move(operand_strides));
+                }
             }
 
-            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+            else if (Op::get_direction() == Direction::BACKWARD) {
+                /* Placeholder */
+            }
+
+            return strides;
         }
         
         template <typename Op>
@@ -444,8 +477,8 @@ namespace tensor
                 }
             }
 
-            broadcasted_strides_ = compute_broadcast_strides_<Op>();
             common_is_contiguous_ = check_contiguous();
+            broadcasted_strides_ = compute_broadcast_strides_<Op>();
         }
 
         
