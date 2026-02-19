@@ -166,15 +166,15 @@ namespace tensor
                 // } else {
                 //     return broadcast_shapes_elementwise_();
                 // }
-                return broadcast_shapes_elementwise();
+                return broadcast_shapes_elementwise_<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
                 return broadcast_shapes_reduction<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
                 return broadcast_shapes_matmul_<Op>();
             } if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
-                return broadcast_shapes_scalar_();
+                return broadcast_shapes_scalar_<Op>();
             } if constexpr (Op::iter_kind() == IterationKind::COPY) {
-                return broadcast_shapes_copy_();
+                return broadcast_shapes_copy_<Op>();
             }
         }
 
@@ -259,15 +259,15 @@ namespace tensor
         std::vector<std::vector<size_t>> compute_broadcast_strides_()
         {
             if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) {
-                return compute_strides_elementwise_();
+                return compute_strides_elementwise_<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
                 return compute_strides_reduction_<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
                 return compute_strides_matmul_<Op>();
             } else if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
-                return compute_strides_scalar_();
-            } else if constexpr (Op:iter_kind() == IterationKind::COPY) {
-                return compute_strides_copy_();
+                return compute_strides_scalar_<Op>();
+            } else if constexpr (Op::iter_kind() == IterationKind::COPY) {
+                return compute_strides_copy_<Op>();
             }
         }
 
@@ -477,7 +477,7 @@ namespace tensor
                 }
             }
 
-            common_is_contiguous_ = check_contiguous();
+            common_is_contiguous_ = check_contiguous_();
             broadcasted_strides_ = compute_broadcast_strides_<Op>();
         }
 
