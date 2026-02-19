@@ -176,38 +176,6 @@ namespace tensor
                    bool requires_grad = false,
                    void* src = nullptr);
         
-
-        // template <typename... Dims>
-        // TensorImpl(size_t first_dim, Dims... dims); 
-                    
-                    
-        // template <typename Lambda, typename std::enable_if<!std::is_invocable<Lambda>::value, int>::type = 0>
-        // TensorImpl(const std::vector<size_t>& shape,
-        //             ScalarType dtype = ScalarType::Float32,
-        //             Device device = {DeviceType::CPU, 0},
-        //             Lambda func);
-
-
-
-
-
-
-        // /* Empty implementation from shape */
-        // TensorImpl(const std::vector<size_t>& shape)
-        //     : shape_(std::move(shape))
-        // {
-        //     this->refresh_metadata();
-        //     this->storage_ = std::make_shared<Storage>(total_size_*element_size(dtype_), device_);
-        // }
-
-        
-        // /* Impl from pointer to values */
-        // TensorImpl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src)
-        //     : shape_(std::move(shape)), dtype_(dtype), device_(std::move(device)), storage_(nullptr)
-        // {
-        //     this->refresh_metadata();
-        //     this->storage_ = std::make_shared<Storage>(total_size_*element_size(dtype_), device_, src);
-        // }
         
 
         // -------------------------------------------------------------------------------------------------------------  
@@ -293,67 +261,6 @@ namespace tensor
             }
             return true;
         }
-
-        // /* TODO: check */
-        // std::unique_ptr<TensorImpl> shallow_copy()
-        // {
-        //     auto copy = std::make_unique<TensorImpl>();
-            
-        //     copy->storage_ = this->storage_;
-        //     copy->dtype_ = this->dtype_;
-        //     copy->device_ = this->device_;
-        //     copy->shape_ = this->shape_;
-        //     copy->strides_ = this->strides_;
-        //     copy->offset_ = this->offset_;
-        //     copy->total_size_ = this->total_size_;
-        //     copy->contiguous_ = this->contiguous_;
-
-        //     return copy;
-        // }
-
-        // // TODO: check
-        // /* Creates a copy of the tensorImpl that shares Storage and autogradMeta. */
-        // std::unique_ptr<TensorImpl> deep_copy()
-        // {
-        //     auto new_impl = std::make_unique<TensorImpl>();
-           
-        //     new_impl->dtype_ = this->dtype_;
-        //     new_impl->device_ = this->device_;
-        //     new_impl->shape_ = this->shape_;
-        //     new_impl->strides_ = this->strides_;
-        //     new_impl->offset_ = this->offset_;
-        //     new_impl->total_size_ = this->total_size_;
-        //     new_impl->contiguous_ = this->contiguous_;
-            
-        //     if (this->storage_) {
-        //         new_impl->storage_ = std::make_shared<Storage>(*(this->storage_));
-        //     }
-            
-        //     // Needs to copy AutogradMeta since it is used by contiguous(), useful for DL
-        //     if (this->autograd_meta_) {
-        //         new_impl->autograd_meta_ = this->autograd_meta_->clone();
-        //     }
-
-        //     return new_impl;
-        // }
-
-        // // TODO: incomplete
-        // /* Return a contiguous version of the same shape by reordering the storage if the contiguity is violated.
-        //    Allows efficient memory access for computation performances  */
-        // std::unique_ptr<TensorImpl> contiguous() const
-        // {
-        //     if (contiguous_) {
-        //         // Shallow copy
-        //     } else {
-        //         auto new_impl = std::make_unique<TensorImpl>();
-        //         new_impl->shape_ = this->shape_;
-        //         new_impl->dtype_ = this->dtype_;
-        //         new_impl->device_ = this->device_;
-                
-        //         new_impl->refresh_metadata();
-        //     }
-
-        // }
 
 
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
