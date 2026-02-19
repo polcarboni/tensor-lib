@@ -14,21 +14,21 @@ namespace tensor::ops
 {
 
     template <typename Op, typename... Args>
-    void dispatch_impl_(TensorIterator& iter, Args... args)
+    void dispatch_impl_(tensor::TensorIterator& iter, Args&&... args)
     {
-        DISPATCH_ALL_TYPES(iter->get_common_dtype(), "dispatch", [&]
+        DISPATCH_ALL_TYPES(iter.get_common_dtype(), "dispatch", [&]
         {
-            if (iter->get_common_device() == DeviceType::CPU) {
-                Op::template cpu<scalar_t>(iter, args...);
+            if (iter.get_common_device() == DeviceType::CPU) {
+                Op::template cpu<scalar_t>(iter, std::forward<Args>(args)...);
             }
             #ifdef USE_CUDA
-            else if (iter->get_common_device() == DeviceType::CUDA) {
+            else if (iter.get_common_device() == DeviceType::CUDA) {
                 auto stream = get_current_cuda_stream();
-                Op::template cuda<scalar_t>(iter, stream, args...);
+                Op::template cuda<scalar_t>(iter, stream, std::forward<Args>(args)...);
             }
             #endif
             else {
-                throw std::runtime_error("nullary_dispatch: Unsupported device " + to_string(device));
+                throw std::runtime_error("dispatch: Unsupported device " + to_string(iter.get_common_device()));
             }
         });
     }
@@ -36,7 +36,7 @@ namespace tensor::ops
     template <typename Op, typename... Args>
     tensor::TensorImpl dispatch_nullary(Device device, ScalarType dtype, std::vector<size_t>& shape, Args... args)
     {
-        TensorIterator iter;
+        tensor::TensorIterator iter;
         iter.build<Op>(shape);
         dispatch_impl_<Op>(iter, args...);
 
@@ -47,7 +47,7 @@ namespace tensor::ops
     template <typename Op, typename... Args>
     tensor::TensorImpl dispatch_unary(Device device, ScalarType dtype, TensorImpl& in, Args... args);
     // {
-    //     // TensorIterator iter;
+    //     // tensor::TensorIterator iter;
     //     // iter.add_input(in);
     //     // iter.build<Op>();
 
@@ -57,21 +57,20 @@ namespace tensor::ops
     
 
     template <typename Op, typename... Args>
-    tensor::TensorImpl dispatch_unary_inplace(Device device, ScalarType dtype, TensorImpl& in, Args... args);
-    // {   
-    //     // TensorIterator iter;
-    //     // iter.add_output(in);
-    //     // iter.add_input(in);
-    //     // iter.build<Op>();
+    void dispatch_unary_inplace(TensorImpl& in, Args&&... args)
+    {   
+        tensor::TensorIterator iter;
+        iter.add_output(in);
+        iter.add_input(in);
+        iter.build<Op>();
 
-    //     // dispatch_impl_<Op>(iter, args...);
-    //     // return iter.get_output();
-    // }
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
 
     template <typename Op, typename... Args>
     tensor::TensorImpl dispatch_unary_casting(Device device, ScalarType dtype, TensorImpl& in, Args... args);
     // {   
-    //     // TensorIterator iter;
+    //     // tensor::TensorIterator iter;
     //     // iter.add_input(in);
     //     // iter.build<Op>(dtype);
 
@@ -84,7 +83,7 @@ namespace tensor::ops
     tensor::TensorImpl dispatch_binary(Device device, ScalarType dtype,
         tensor::TensorImpl& lhs, tensor::TensorImpl& rhs, Args... args)
     {
-        TensorIterator iter;
+        tensor::TensorIterator iter;
         iter.add_input(lhs);
         iter.add_input(rhs);
         iter.build<Op>();
@@ -98,7 +97,7 @@ namespace tensor::ops
         tensor::TensorImpl& output, tensor::TensorImpl& lhs, tensor::TensorImpl& rhs,
         Args... args)
     {
-        TensorIterator iter;
+        tensor::TensorIterator iter;
         iter.add_input(output.autograd_meta_.grad_);    //Upstream grad
         iter.add_input(lhs);
         iter.add_input(rhs);
