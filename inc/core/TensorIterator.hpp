@@ -24,8 +24,8 @@ namespace tensor
 
         ScalarType common_dtype_;
         Device common_device_;
-        bool is_contiguous_ = false;
-        bool requires_grad_ = false;
+        bool common_is_contiguous_ = false;
+        bool common_requires_grad_ = false;
 
         std::vector<size_t> broadcasted_shape_;
         std::vector<size_t> output_shape_;
@@ -147,7 +147,7 @@ namespace tensor
 
             common_device_ = compute_common_device_();
             common_dtype_  = compute_common_dtype_();
-            requires_grad_ = compute_requires_grad_();
+            common_requires_grad_ = compute_requires_grad_();
         }
 
         
@@ -161,11 +161,11 @@ namespace tensor
         std::vector<size_t> broadcast_shapes_()
         {
             if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) {
-                if (inputs_.empty()) {
-                    return output_ ? output_->get_shape() : throw std::runtime_error("NOT SURE CHECK AGAIN")
-                } else {
-                    return broadcast_shapes_elementwise_();
-                }
+                // if (inputs_.empty()) {
+                //     return output_ ? output_->get_shape() : throw std::runtime_error("NOT SURE CHECK AGAIN")
+                // } else {
+                //     return broadcast_shapes_elementwise_();
+                // }
                 return broadcast_shapes_elementwise();
             } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
                 return broadcast_shapes_reduction<Op>();
@@ -322,8 +322,21 @@ namespace tensor
             else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
         }
 
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                                  TYPES MATERIALIZATION
+        // ------------------------------------------------------------------------------------------------------------- 
 
-
+        /**
+         * Calls the type casting operations for tensor operators with dtype different from iterator.common_dtype_ 
+         */
+        void materialize_inputs_()
+        {
+            for (size_t i = 0; i < inputs_.size(); ++i) {
+                if (!inputs_[i] || inputs_[i]->get_dtype() == common_dtype_) continue;
+                    // This will produce a nested iterator call
+                    inputs_[i] = inputs_[i]->to_dtype(common_dtype_);
+            }
+        }
 
 
         // =============================================================================================================  
@@ -357,9 +370,13 @@ namespace tensor
          * used by the kernels for accessing the tensor Storage elements.  
          */
         template <typename Op>
-        void build(std::vector<size_t>& shape = {})
+        void build(std::vector<size_t>& shape = {}, ScalarType cast_type = ScalarType::EMPTY)
         {
             validate_inputs_metadata_<Op>();
+
+            // Calls tensorImpl.to_dtype() for all input tensors with type different than common_dtype_
+            // and changes the inputs_ vector inplace.
+            materialize_inputs_();
 
             if (Op::get_direction() == Direction::FORWARD)
             {
@@ -367,7 +384,18 @@ namespace tensor
                     throw std::runtime_error("Forward operation expects at most 1 output");
                 }
 
-                // Filling operations use the provided shape argument (no broadcasting)
+                // UNARY CASTING OPERATION: uses the provided cast_type argument
+                // TODO: add check also on the operation template
+                if (cast_type != ScalarType::EMPTY) {
+                    if(shape.empty()) {
+                        throw std::runtime_error("Cannot cast an empty tensor");
+                    }
+                    common_dtype_ = cast_type;
+                }
+
+                // FILLING OPERATION: uses the provided shape argument (no broadcasting)
+                // TODO: add check also on the operation template
+                // TODO: this should also use the dtype
                 if constexpr (std::is_base_of_v<FillOpBase, Op>) {
                     if (shape.empty()) {
                         throw std::runtime_error("Fill operation requires an explicit output shape");
@@ -384,10 +412,10 @@ namespace tensor
                 }
 
                 if (!outputs_[0]) {
-                    outputs_[0] = std::make_shared<TensorImpl>(output_shape_, common_dtype_, common_device_, requires_grad_);
+                    outputs_[0] = std::make_shared<TensorImpl>(output_shape_, common_dtype_, common_device_, common_requires_grad_);
                 }
 
-                if(requires_grad_) {
+                if(common_requires_grad_) {
                     // Initialize grads: outputs_[0]->init_autograd_meta()
                     // Store input shapes in output_tensor->autograd_meta_->grad_fn_->input_shapes_;
                     //      required for backward pass
@@ -417,7 +445,7 @@ namespace tensor
             }
 
             broadcasted_strides_ = compute_broadcast_strides_<Op>();
-            is_contiguous_ = check_contiguous();
+            common_is_contiguous_ = check_contiguous();
         }
 
         
