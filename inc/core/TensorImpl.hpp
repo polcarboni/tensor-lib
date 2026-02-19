@@ -13,9 +13,6 @@
 
 namespace tensor
 {
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                        TENSOR IMPLEMENTATION CLASS
-    // -------------------------------------------------------------------------------------------------------------
 
     // TODO: constructor to pass values to the storage (non-null initialization of vector)
     // TODO: check if view and clone are using same or new storage correctly
@@ -34,8 +31,19 @@ namespace tensor
         bool requires_grad_ = false;
         std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
-        // ---------------------------------------- HELPER FUNCTIONS ----------------------------------------
-        
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                                  GETTERS
+        // -------------------------------------------------------------------------------------------------------------        
+
+        std::vector<size_t>& get_shape() { return shape_; }
+        ScalarType get_dtype() { return dtype_; }
+        Device get_device() { return device_; }
+        bool requires_grad() { return requires_grad_; }
+
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                              HELPER FUNCTIONS
+        // -------------------------------------------------------------------------------------------------------------
+
         // TODO: check the compute strides part, might need alternative computations for empty/non empty tensors
         /* Helper: computes metadata after chenges in view, shape, device, ... */
         void refresh_metadata()
@@ -83,7 +91,10 @@ namespace tensor
             return physical_offset;
         }
     
-        // ---------------------------------------- CONSTRUCTOR ----------------------------------------
+
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                                  CONSTRUCTORS
+        // -------------------------------------------------------------------------------------------------------------
         
         TensorImpl() = default;
         ~TensorImpl() = default;
@@ -199,8 +210,9 @@ namespace tensor
         // }
         
 
-        // -------------------------------------- INDEXERS --------------------------------------
-        // No indexing on CUDA for the moment 
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                              INDEXERS/ACCESSORS
+        // -------------------------------------------------------------------------------------------------------------
 
         // Data accessor helper
         template <typename T>
@@ -252,7 +264,9 @@ namespace tensor
         }
 
 
-        // -------------------------------------- GEOMETRIC FUNCTIONS --------------------------------------
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                          GEOMETRIC OPERATIONS
+        // -------------------------------------------------------------------------------------------------------------
     
         /* Checks if the strides represent a contiguous representation of data */
         bool is_contiguous() const
@@ -343,28 +357,7 @@ namespace tensor
 
 
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
-
         std::unique_ptr<TensorImpl> reshape(std::initializer_list<size_t>& new_shape);
-
-        std::vector<size_t>& get_shape()
-        {
-            return shape_;
-        }
-        
-        ScalarType get_dtype()
-        {
-            return dtype_;
-        }
-
-        Device get_device()
-        {
-            return device_;
-        }
-
-        bool requires_grad()
-        {
-            return requires_grad_;
-        }
 
 
         // Defined for the Iterator automatic casting. The type for the user operation might be different.
@@ -380,6 +373,11 @@ namespace tensor
         }
 
     };
+
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                         METADATA PRINTING UTITLIES
+    // -------------------------------------------------------------------------------------------------------------
 
     inline std::string to_string(const TensorImpl& tensor)
     {
