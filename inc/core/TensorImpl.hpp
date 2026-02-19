@@ -367,16 +367,17 @@ namespace tensor
         }
 
 
-    //     std::shared_ptr<TensorImpl> to(ScalarType target_dtype) const
-    //     {
-    //         if (this->dtype_ == target_dtype) {
-    //             return std::make_shared<TensorImpl>(*this);
-    //         }
+        // Defined for the Iterator automatic casting. The type for the user operation might be different.
+        // TODO: in this case. Move this to private and declare it as Iterator friend.
+        std::shared_ptr<TensorImpl> to_dtype(ScalarType target_dtype) const
+        {
+            if (this->dtype_ == target_dtype) {
+                return std::make_shared<TensorImpl>(*this);
+            }
 
-    //         auto new_tensor = std::make_shared<TensorImpl>(this->shape_, target_dtype, this->device_);
-            
-    //         if (this->total_size_ == 0) return new_tensor;
-    //     }
+            // TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(*this, target_dtype);
+            // return std::make_shared<TensorImpl>(std::move(result));
+        }
 
     };
 
