@@ -4,9 +4,9 @@
 #include "core/Allocator.hpp"
 #include "core/Storage.hpp"
 #include "core/TensorImpl.hpp"
-#include "core/Tensor.hpp"
 #include "core/TensorIterator.hpp"
 #include "core/Dispatchers.hpp"
+#include "core/Tensor.hpp"
 
 #include "ops/FillStorageOps.hpp"
 #include "ops/BinaryOps.hpp"
