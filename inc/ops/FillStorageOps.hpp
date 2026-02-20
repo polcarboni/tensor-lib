@@ -12,7 +12,7 @@ namespace tensor::ops
     class FillOpBase {
     protected:
         static constexpr bool supports_broadcasting_ = false;
-        static constexpr int num_inputs_ = 0;
+        static constexpr int num_inputs_ = 1;
         static constexpr int num_outputs_ = 1;
 
         static constexpr IterationKind iter_kind_ = IterationKind::ELEMENT_WISE;
