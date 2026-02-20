@@ -37,13 +37,13 @@ namespace tensor
         //                                                  GETTERS
         // -------------------------------------------------------------------------------------------------------------        
 
-        std::vector<size_t>& get_shape() { return shape_; }
+        std::vector<size_t>& get_shape()   { return shape_; }
         std::vector<size_t>& get_strides() { return strides_; }
-        ScalarType get_dtype() { return dtype_; }
-        size_t get_total_size() { return total_size_; }
-        Device get_device() { return device_; }
-        bool requires_grad() { return requires_grad_; }
-        bool get_contiguous() { return contiguous_; }
+        ScalarType get_dtype()             { return dtype_; }
+        size_t get_total_size()            { return total_size_; }
+        Device get_device()                { return device_; }
+        bool requires_grad()               { return requires_grad_; }
+        bool get_contiguous()              { return contiguous_; }
 
 
         // -------------------------------------------------------------------------------------------------------------  
@@ -280,10 +280,10 @@ namespace tensor
 
         // Defined for the Iterator automatic casting. The type for the user operation might be different.
         // TODO: in this case. Move this to private and declare it as Iterator friend.
-        std::shared_ptr<TensorImpl> to_dtype(ScalarType target_dtype) const
+        std::unique_ptr<TensorImpl> to_dtype(ScalarType target_dtype) const
         {
             if (this->dtype_ == target_dtype) {
-                return std::make_shared<TensorImpl>(*this);
+                return std::make_unique<TensorImpl>(*this);
             }
 
             // TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(*this, target_dtype);

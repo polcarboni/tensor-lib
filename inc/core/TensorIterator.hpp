@@ -16,20 +16,23 @@ namespace tensor
 
     class TensorIterator {
     private: 
-        std::vector<std::shared_ptr<TensorImpl>> inputs_;
-        std::vector<std::shared_ptr<TensorImpl>> outputs_;
+        // std::vector<std::shared_ptr<TensorImpl>> inputs_;
+        // std::vector<std::shared_ptr<TensorImpl>> outputs_;
 
         // Better version: avoid copy
-        std::vector<TensorImpl*> inputs_;
+        std::vector<TensorImpl*> inputs_;                               /* non-const for allowing inplace operations */
         std::vector<TensorImpl*> outputs_;
 
-        ScalarType common_dtype_;
-        Device common_device_;
-        bool common_is_contiguous_ = false;
-        bool common_requires_grad_ = false;
+        std::vector<std::unique_ptr<TensorImpl>> materialized_inputs_;  /* Type casted input copies */
+        std::unique_ptr<TensorImpl> nullary_output_;
 
-        std::vector<size_t> broadcasted_shape_;
-        std::vector<size_t> output_shape_;
+        ScalarType common_dtype_;
+        Device     common_device_;
+        bool       common_is_contiguous_ = false;
+        bool       common_requires_grad_ = false;
+
+        std::vector<size_t>              broadcasted_shape_;
+        std::vector<size_t>              output_shape_;
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
@@ -48,13 +51,13 @@ namespace tensor
 
             ScalarType promoted = ScalarType::Bool;
             
-            for (const auto& input : inputs_)
+            for (auto* input : inputs_)
             {
                 if(!input) continue;
                 promoted = promote_types(promoted, input->get_dtype());
             }
             
-            for (const auto& output : outputs_)
+            for (auto* output : outputs_)
             {
                 if(!output) continue;
                 promoted = promote_types(promoted, output->get_dtype());
@@ -72,7 +75,7 @@ namespace tensor
             Device common_dev{};
             bool device_initialized = false;
             
-            for (const auto& output: outputs_)
+            for (auto* output: outputs_)
             {
                 if(!output) continue;
 
@@ -86,7 +89,7 @@ namespace tensor
                 }
             }
 
-            for (const auto& input : inputs_)
+            for (auto* input : inputs_)
             {
                 if (!input) continue;
 
@@ -109,13 +112,13 @@ namespace tensor
          */
         bool check_contiguous_()
         {
-            for (const auto& output : outputs_) {
+            for (auto* output : outputs_) {
                 if(output && !output->is_contiguous()) {
                     return false;
                 }
             }
 
-            for (const auto& input: inputs_) {
+            for (auto* input: inputs_) {
                 if (input && !input->is_contiguous()) {
                         return false;
                 }
@@ -130,14 +133,14 @@ namespace tensor
          */
         bool compute_requires_grad_() {
 
-            for (const auto& output : outputs_) {
+            for (auto* output : outputs_) {
                 if(output && output->requires_grad()) {
                     return true;
                 }
             }
 
-            for (const auto& input: inputs_) {
-                if (input->requires_grad()) {
+            for (auto* input: inputs_) {
+                if (input && input->requires_grad()) {
                     if (common_dtype_ == ScalarType::Float32 || common_dtype_ == ScalarType::Float64)
                         return true;
                 }
@@ -175,22 +178,11 @@ namespace tensor
         template <typename Op>
         std::vector<size_t> broadcast_shapes_()
         {
-            if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) {
-                // if (inputs_.empty()) {
-                //     return output_ ? output_->get_shape() : throw std::runtime_error("NOT SURE CHECK AGAIN")
-                // } else {
-                //     return broadcast_shapes_elementwise_();
-                // }
-                return broadcast_shapes_elementwise_<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
-                return broadcast_shapes_reduction<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
-                return broadcast_shapes_matmul_<Op>();
-            } if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
-                return broadcast_shapes_scalar_<Op>();
-            } if constexpr (Op::iter_kind() == IterationKind::COPY) {
-                return broadcast_shapes_copy_<Op>();
-            }
+            if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  return broadcast_shapes_elementwise_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     return broadcast_shapes_reduction_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        return broadcast_shapes_matmul_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::SCALAR)        return broadcast_shapes_scalar_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::COPY)          return broadcast_shapes_copy_<Op>();
         }
 
         /**
@@ -205,14 +197,14 @@ namespace tensor
             }
 
             size_t max_ndim = 0;
-            for (const auto& input: inputs_) {
+            for (auto* input: inputs_) {
                 if (!input) continue;
                 max_ndim = std::max(max_ndim, input->get_shape().size());
             }
 
             std::vector<size_t> result_shape(max_ndim, 1);
 
-            for (const auto& input: inputs_)
+            for (auto* input: inputs_)
             {
                 const auto& current_shape = input->get_shape();
                 size_t current_ndim = current_shape.size();
@@ -273,19 +265,14 @@ namespace tensor
         template <typename Op>
         std::vector<std::vector<size_t>> compute_broadcast_strides_()
         {
-            if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) {
-                return compute_strides_elementwise_<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
-                return compute_strides_reduction_<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
-                return compute_strides_matmul_<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::SCALAR) {
-                return compute_strides_scalar_<Op>();
-            } else if constexpr (Op::iter_kind() == IterationKind::COPY) {
-                return compute_strides_copy_<Op>();
-            }
+            if      constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) return compute_strides_elementwise_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    return compute_strides_reduction_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       return compute_strides_matmul_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::SCALAR)       return compute_strides_scalar_<Op>();
+            else if constexpr (Op::iter_kind() == IterationKind::COPY)         return compute_strides_copy_<Op>();
         }
         
+
         /**
          * TODO: this function was completely implemented via LLM (it is wrong).
          * 
@@ -307,7 +294,7 @@ namespace tensor
                 
                 strides.reserve(inputs_.size() + outputs_.size());
 
-                for (const auto& operand : inputs_) {
+                for (auto* operand : inputs_) {
                     std::vector<size_t> operand_strides;
                     size_t ndim = output_shape_.size();
 
@@ -325,7 +312,7 @@ namespace tensor
                         // strides from operand metadata and
                         // pad with 0s left dimensions added by broadcasting
 
-                        operand_strides_.resize(ndim, 0);
+                        operand_strides.resize(ndim, 0);
                         size_t ndim_op = op_strides.size();
                         size_t offset = ndim - ndim_op;     // padding
 
@@ -343,13 +330,13 @@ namespace tensor
                         bool is_prepended = (i < offset);
                         bool is_size_one = !is_prepended && (op_shape[i - offset] == 1);
                         if(!is_prepended || is_size_one) {
-                            operand_strides[i] = 0:
+                            operand_strides[i] = 0;
                         }
                     }
                     strides.push_back(std::move(operand_strides));
                 }
 
-                for (const auto& operand : outputs_) {
+                for (auto* operand : outputs_) {
                     std::vector<size_t> operand_strides;
                     size_t ndim = broadcasted_shape_.size();
 
@@ -378,50 +365,34 @@ namespace tensor
             }
 
             else if (Op::get_direction() == Direction::BACKWARD) {
-                /* Placeholder */
+                throw std::runtime_error("Compute element-wise strides: backward is NOT IMPLEMENTED");
             }
 
             return strides;
         }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_reduction_()
-        {
-            if (Op::get_direction() == Direction::FORWARD) {
-
-            }
-
-            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        std::vector<std::vector<size_t>> compute_strides_reduction_(){
+            if (Op::get_direction() == Direction::FORWARD) {}
+            else if (Op::get_direction() == Direction::BACKWARD) {}
         }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_matmul_()
-        {
-            if (Op::get_direction() == Direction::FORWARD) {
-
-            }
-
-            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        std::vector<std::vector<size_t>> compute_strides_matmul_(){
+            if (Op::get_direction() == Direction::FORWARD) {}
+            else if (Op::get_direction() == Direction::BACKWARD) {}
         }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_scalar_()
-        {
-            if (Op::get_direction() == Direction::FORWARD) {
-
-            }
-
-            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        std::vector<std::vector<size_t>> compute_strides_scalar_(){
+            if (Op::get_direction() == Direction::FORWARD) {}
+            else if (Op::get_direction() == Direction::BACKWARD) {}
         }
         
         template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_copy_()
-        {
-            if (Op::get_direction() == Direction::FORWARD) {
-
-            }
-
-            else if (Op::get_direction() == Direction::BACKWARD) { /* Placeholder */}
+        std::vector<std::vector<size_t>> compute_strides_copy_(){
+            if (Op::get_direction() == Direction::FORWARD) {}
+            else if (Op::get_direction() == Direction::BACKWARD) {}
         }
 
         // -------------------------------------------------------------------------------------------------------------  
@@ -436,7 +407,8 @@ namespace tensor
             for (size_t i = 0; i < inputs_.size(); ++i) {
                 if (!inputs_[i] || inputs_[i]->get_dtype() == common_dtype_) continue;
                     // This will produce a nested iterator call
-                    inputs_[i] = inputs_[i]->to_dtype(common_dtype_);
+                    materialized_inputs_.push_back(inputs_[i]->to_dtype(common_dtype_));
+                    inputs_[i] = materialized_inputs_.back().get();
             }
         }
 
@@ -457,14 +429,14 @@ namespace tensor
 
         // --------------------------- DISPATCHER --------------------------- 
 
-        void add_input(const TensorImpl& tensor)
+        void add_input(TensorImpl* tensor)
         {
-            inputs_.push_back(std::make_shared<TensorImpl>(tensor));
+            inputs_.push_back(tensor);
         }
         
-        void add_output(TensorImpl& tensor)
+        void add_output(TensorImpl* tensor)
         {
-            outputs_.push_back(std::make_shared<TensorImpl>(tensor));
+            outputs_.push_back(tensor);
         }
         
         /**
@@ -510,11 +482,12 @@ namespace tensor
                 }
 
                 if (outputs_.empty()) {
-                    outputs_.resize(1);
+                    outputs_.push_back(nullptr);
                 }
 
                 if (!outputs_[0]) {
-                    outputs_[0] = std::make_shared<TensorImpl>(output_shape_, common_dtype_, common_device_, common_requires_grad_);
+                    nullary_output_ = std::make_unique<TensorImpl>(output_shape_, common_dtype_, common_device_, common_requires_grad_);
+                    outputs_[0] = nullary_output_.get();
                 }
 
                 if(common_requires_grad_) {
@@ -551,7 +524,7 @@ namespace tensor
         }
 
         
-        std::vector<std::shared_ptr<TensorImpl>>& get_outputs()
+        std::vector<TensorImpl*> get_outputs()
         {
             return outputs_;
         }
