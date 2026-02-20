@@ -60,8 +60,8 @@ namespace tensor::ops
     void dispatch_unary_inplace(TensorImpl& in, Args&&... args)
     {   
         tensor::TensorIterator iter;
-        iter.add_output(in);
-        iter.add_input(in);
+        iter.add_output(&in);
+        iter.add_input(&in);
         iter.build<Op>();
 
         dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
