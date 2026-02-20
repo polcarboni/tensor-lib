@@ -8,7 +8,10 @@
 
 namespace tensor {
 
-    // -------------------- PRIVATE HELPERS -------------------- 
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                PRIVATE HELPERS
+    // -------------------------------------------------------------------------------------------------------------
 
     Allocator* Storage::get_allocator(DeviceType type) {
         
@@ -19,10 +22,9 @@ namespace tensor {
             static CUDAAllocator cuda_instance;
             return &cuda_instance;
         } else {
-            throw std::runtime_error("Unsupported device or CUDA support not copmiled");
+            throw std::runtime_error("Unsupported device or CUDA support not compiled");
         }
     }
-
 
     void Storage::copy_data_from(const void* src) {
         
@@ -72,42 +74,55 @@ namespace tensor {
         }
     }
 
-    // -------------------- CONSTRUCTORS / DESTRUCTOR -------------------- 
 
-    // Empty constructor
-    Storage::Storage(size_t size_bytes, Device device)
-        : size_bytes_(size_bytes), device_(device), data_(nullptr) {
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  CONSTRUCTORS
+    // -------------------------------------------------------------------------------------------------------------
+
+    Storage::Storage() = default;                                                       /* Default constructor */
+
+    Storage::Storage(size_t size_bytes, Device device)                                  
+        : size_bytes_(size_bytes), device_(device), data_(nullptr)
+    {
         
         if (size_bytes_ > 0) {
             data_ = get_allocator(device_.type)->allocate(size_bytes_);
         }
     }
 
-    // Constructor from data pointer
-    Storage::Storage(size_t size_bytes, Device device, const void* src)
-        : size_bytes_(size_bytes), device_(device), data_(nullptr) {
+    Storage::Storage(size_t size_bytes, Device device, const void* src)                
+        : size_bytes_(size_bytes), device_(device), data_(nullptr)
+    {
         
-        this->data_ = get_allocator(device_.type)->allocate(size_bytes_);
-        this->copy_data_from(src);
+        // TODO: REQUIRES CHECKS or BOUNDARIES
+        if (size_bytes_ > 0) {
+            
+            if (src == nullptr)
+                throw std::invalid_argument("Storage: null source pointer for non-null allocation");
+                
+            this->data_ = get_allocator(device_.type)->allocate(size_bytes_);
+            this->copy_data_from(src);
+
+        }
     }
 
-    // Desctructor
-    Storage::~Storage() {
+    Storage::~Storage()
+    {
         if (data_) {
             get_allocator(device_.type)->deallocate(data_);
             data_ = nullptr;
         }
     }
 
-    // Copy constructor
     Storage::Storage(const Storage& other)
-        : size_bytes_(other.size_bytes_), device_(other.device_), data_(nullptr) {
-            data_ = get_allocator(device_.type)->allocate(size_bytes_);
-            copy_data_from(other.data_);
+        : size_bytes_(other.size_bytes_), device_(other.device_), data_(nullptr)
+    {
+        data_ = get_allocator(device_.type)->allocate(size_bytes_);
+        copy_data_from(other.data_);
     }
 
-    // Copy assignment operator
-    Storage& Storage::operator=(const Storage& other) {
+    Storage& Storage::operator=(const Storage& other)
+    {
         if (this != &other) {
             if (data_) {
                 get_allocator(device_.type)->deallocate(data_);
@@ -124,15 +139,15 @@ namespace tensor {
         return *this;
     }
 
-    // Move constructor
     Storage::Storage(Storage&& other) noexcept
-        : data_(other.data_), size_bytes_(other.size_bytes_), device_(other.device_) {
+        : data_(other.data_), size_bytes_(other.size_bytes_), device_(other.device_)
+    {
         other.data_ = nullptr;
         other.size_bytes_ = 0;
     }
 
-    // Move assignment operator
-    Storage& Storage::operator=(Storage&& other) noexcept {
+    Storage& Storage::operator=(Storage&& other) noexcept
+    {
         if (this != &other) {
             if (data_) {
                 get_allocator(device_.type)->deallocate(data_);
@@ -148,22 +163,20 @@ namespace tensor {
         return *this;
     }
 
-    Storage Storage::clone() const {
-        return *this;
-    }
 
-    // -------------------- ACCESSORS -------------------- 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                      GETTERS
+    // -------------------------------------------------------------------------------------------------------------    
 
-    void* Storage::data() const {
-        return data_;
-    }
+    void*  Storage::data() const   { return data_; }
+    size_t Storage::nbytes() const { return size_bytes_; }
+    Device Storage::device() const { return device_; }
 
-    size_t Storage::nbytes() const {
-        return size_bytes_;
-    }
 
-    Device Storage::device() const {
-        return device_;
-    }
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                      CLONE
+    // -------------------------------------------------------------------------------------------------------------   
+    
+    Storage Storage::clone() const { return *this; }
 
 } // namespace tensor
