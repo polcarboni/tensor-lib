@@ -1,7 +1,5 @@
 #pragma once
-#include "Types.hpp"
-#include "TensorIterator.hpp"
-
+#include "core/Dispatchers.hpp"
 
 namespace tensor::ops
 {
@@ -106,11 +104,8 @@ namespace tensor::ops
         return iter.get_output();
     }
 
-    // TODO-fix: this return type should probably be a pair or a vector. Surely not void.
     template <typename BackwardOp, typename... Args>
-    void dispatch_binary_backward(Device device, ScalarType dtype,
-        TensorImpl& output, TensorImpl& lhs, TensorImpl& rhs,
-        Args&&... args)
+    std::pair<TensorImpl&, TensorImpl&> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
     {
         TensorIterator iter;
         iter.add_input(output.autograd_meta_.grad_);    //Upstream grad
@@ -118,10 +113,10 @@ namespace tensor::ops
         iter.add_input(rhs);
         iter.add_output(lhs.autograd_meta_.grad_);
         iter.add_output(rhs.autograd_meta_.grad_);
-        iter.build<BackwardOp>(device, dtype);
+        iter.build<BackwardOp>();
 
-        dispatch_impl_<BackwardOp>(device, dtype, iter, std::forward<Args>(args)...);
-        return iter.get_outputs();  // Return both output tensors?
+        dispatch_impl_<BackwardOp>(iter, std::forward<Args>(args)...);
+        return iter.get_outputs();  // TODO: this is surely wrong. Return both output tensors?
     }
 
 
@@ -130,7 +125,7 @@ namespace tensor::ops
     // -------------------------------------------------------------------------------------------------------------  
 
     template <typename Op, typename... Args>
-    void dispatch_ternary(Device device, ScalarType dtype, TensorImpl* a, TensorImpl* b, TensorImpl* c, Args&&... args)
+    TensorImpl   dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args)
     {
 
     }
@@ -141,7 +136,7 @@ namespace tensor::ops
     // ------------------------------------------------------------------------------------------------------------- 
 
     template <typename Op, typename... Args>
-    void dispatch_comparison(Device device, ScalarType dtype, TensorImpl* lhs, TensorImpl* rhs, Args&&... args)
+    TensorImpl dispatch_comparison(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
     {
 
     }
@@ -152,7 +147,7 @@ namespace tensor::ops
     // ------------------------------------------------------------------------------------------------------------- 
 
     template <typename Op, typename... Args>
-    void dispatch_reduction(Device device, ScalarType dtype, TensorImpl* tensor, Args... args)
+    TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args)
     {
 
     }

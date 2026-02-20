@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 
 namespace tensor
 {
@@ -56,31 +57,28 @@ namespace tensor::ops
     // ------------------------------------------------ BINARY DISPATCHERS ------------------------------------------------
 
     template <typename Op, typename... Args>
-    TensorImpl dispatch_binary(Device device, ScalarType dtype,
-        TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
+    TensorImpl dispatch_binary(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
 
     template <typename BackwardOp, typename... Args>
-    void dispatch_binary_backward(Device device, ScalarType dtype,
-        TensorImpl& output, TensorImpl& lhs, TensorImpl& rhs,
-        Args&&... args);
+    std::pair<TensorImpl&, TensorImpl&> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
 
 
     // ------------------------------------------------ TERNARY DISPATCHERS ------------------------------------------------
 
     template <typename Op, typename... Args>
-    void dispatch_ternary(Device device, ScalarType dtype, TensorImpl* a, TensorImpl* b, TensorImpl* c, Args&&... args);
+    TensorImpl dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args);
 
 
     // ------------------------------------------------ COMPARISON DISPATCHERS ------------------------------------------------
 
     template <typename Op, typename... Args>
-    void dispatch_comparison(Device device, ScalarType dtype, TensorImpl* lhs, TensorImpl* rhs, Args&&... args);
+    TensorImpl dispatch_comparison(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
     
 
     // ------------------------------------------------ REDUCTION DISPATCHERS ------------------------------------------------
     
     template <typename Op, typename... Args>
-    void dispatch_reduction(Device device, ScalarType dtype, TensorImpl* tensor, Args&&... args);
+    TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args);
 
     // TODO: inplace version required?
 
