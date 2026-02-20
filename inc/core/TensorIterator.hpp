@@ -17,10 +17,11 @@ namespace tensor
     class TensorIterator {
     private: 
         std::vector<std::shared_ptr<TensorImpl>> inputs_;
-        // std::shared_ptr<TensorImpl> output_;
         std::vector<std::shared_ptr<TensorImpl>> outputs_;
-        // std::vector<std::shared_ptr<TensorImpl>> output_grads_;
-        // NO: grads are sotred in outputs_[i]->autograd_meta_->grad_
+
+        // Better version: avoid copy
+        std::vector<TensorImpl*> inputs_;
+        std::vector<TensorImpl*> outputs_;
 
         ScalarType common_dtype_;
         Device common_device_;
@@ -106,7 +107,21 @@ namespace tensor
         /**
          * Checks if all the tensor operands are contiguous to allow the use of faster computation paths.
          */
-        bool check_contiguous_();
+        bool check_contiguous_()
+        {
+            for (const auto& output : outputs_) {
+                if(output && !output->is_contiguous()) {
+                    return false;
+                }
+            }
+
+            for (const auto& input: inputs_) {
+                if (input && !input->is_contiguous()) {
+                        return false;
+                }
+            }
+            return true;
+        }
       
 
         /**
@@ -270,27 +285,65 @@ namespace tensor
                 return compute_strides_copy_<Op>();
             }
         }
-
-
+        
+        /**
+         * TODO: this function was completely implemented via LLM (it is wrong).
+         * 
+         * TODO: contiguous operands can use the strides member instead of computing it again.
+         * Other als omight already have the strides.
+         * 
+         * Strides can be hoever changed due to the broadcasting logic.
+         * TODO: provide fast path for operations that do not require it: filling, same size pointwise, other ...
+         * 
+         * Not sure how the forward and backward should be different. Maybe for this case
+         * (element wise operations) can be the same, but not for the other ones.
+         */
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_elementwise_()
         {
             std::vector<std::vector<size_t>> strides;
 
             if constexpr (Op::get_direction() == Direction::FORWARD) {
+                
                 strides.reserve(inputs_.size() + outputs_.size());
 
                 for (const auto& operand : inputs_) {
                     std::vector<size_t> operand_strides;
+                    size_t ndim = output_shape_.size();
+
+                    const auto& op_shape = operand->get_shape();
+                    const auto& op_strides = operand->get_strides();
+
                     if (operand->is_contiguous()) {
-                        // strides from shape
+                        operand_strides.resize(ndim, 0);
+                        size_t stride = 1;
+                        for (int i = static_cast<int>(ndim) - 1; i >= 0; --i) {
+                            operand_strides[i] = stride;
+                            stride *= output_shape_[i];
+                        }
                     } else {
-                        // strides from operand metadata
+                        // strides from operand metadata and
+                        // pad with 0s left dimensions added by broadcasting
+
+                        operand_strides_.resize(ndim, 0);
+                        size_t ndim_op = op_strides.size();
+                        size_t offset = ndim - ndim_op;     // padding
+
+                        for (size_t i = 0; i < ndim_op; ++i) {
+                            operand_strides[offset + i] = op_strides[i];
+                        }
                     }
 
-                    for (size_t i = 0; i < broadcasted_shape_.size(); ++i) {
-                        if(/* NOT SURE ABOUT THIS CONDITION */) {
-                            operand_strides[i] = 0;
+                    // Broadcasting rule: operand size = 1 in dimension -> stride = 0
+                    size_t ndim_op = op_shape.size();
+                    size_t offset = ndim - ndim_op;
+
+                    for (size_t i = 0; i < ndim; ++i) {
+                        // left padded dimensions are implicitly size-1
+                        bool is_prepended = (i < offset);
+                        bool is_size_one = !is_prepended && (op_shape[i - offset] == 1);
+                        if(!is_prepended || is_size_one) {
+                            operand_strides[i] = 0:
                         }
                     }
                     strides.push_back(std::move(operand_strides));
@@ -298,10 +351,26 @@ namespace tensor
 
                 for (const auto& operand : outputs_) {
                     std::vector<size_t> operand_strides;
+                    size_t ndim = broadcasted_shape_.size();
+
                     if(operand->is_contiguous()) {
-
+                        // output never broadcast-reduced
+                        operand_strides.resize(ndim, 0);
+                        size_t stride = 1;
+                        for (int i = static_cast<int>(ndim) - 1; i >= 0; --i) {
+                            operand_strides[i] = stride;
+                            stride *= output_shape_[i];
+                        }
                     } else {
+                        // Non contiguous output: use actual stride directly
+                        const auto& op_strides = operand->get_strides();
+                        size_t ndim_op = op_strides.size();
+                        operand_strides.resize(ndim, 0);
+                        size_t offset = ndim - ndim_op;
 
+                        for (size_t i = 0; i < ndim_op; ++i) {
+                            operand_strides[offset + i] = op_strides[i];
+                        }
                     }
 
                     strides.push_back(std::move(operand_strides));
