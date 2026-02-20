@@ -62,6 +62,7 @@ namespace tensor::ops
         tensor::TensorIterator iter;
         iter.add_output(&in);
         iter.add_input(&in);
+        iter.set_inplace(true);
         iter.build<Op>();
 
         dispatch_impl_<Op>(iter, std::forward<Args>(args)...);

@@ -25,6 +25,7 @@ namespace tensor
 
         std::vector<std::unique_ptr<TensorImpl>> materialized_inputs_;  /* Type casted input copies */
         std::unique_ptr<TensorImpl> nullary_output_;
+        bool inplace_ = false;
 
         ScalarType common_dtype_;
         Device     common_device_;
@@ -157,7 +158,6 @@ namespace tensor
         template<typename Op>
         void validate_inputs_metadata_()
         {
-            
             if (inputs_.size() != Op::num_inputs()) {
                 throw std::runtime_error("Wrong number of inputs: " + std::to_string(inputs_.size()) +
                                          ", expected: " + std::to_string(Op::num_inputs()));
@@ -427,6 +427,9 @@ namespace tensor
         TensorIterator(TensorIterator&&) = default;
         TensorIterator& operator=(TensorIterator&&) = default;
 
+        bool get_inplace()         { return inplace_; }
+        void set_inplace(bool val) { inplace_ = val; }
+
         // --------------------------- DISPATCHER --------------------------- 
 
         void add_input(TensorImpl* tensor)
@@ -460,7 +463,7 @@ namespace tensor
                 }
 
                 // UNARY CASTING OPERATION: uses the provided cast_type argument
-                // TODO: add check also on the operation template
+                // TODO: add check also on the operation template (if std::is_base_of_v<CastOp, Op>)
                 if (cast_type != ScalarType::EMPTY) {
                     if(shape.empty()) {
                         throw std::runtime_error("Cannot cast an empty tensor");
@@ -471,17 +474,18 @@ namespace tensor
                 // FILLING OPERATION: uses the provided shape argument (no broadcasting)
                 // TODO: add check also on the operation template
                 // TODO: this should also use the dtype
-                if constexpr (std::is_base_of_v<FillOpBase, Op>) {
-                    if (shape.empty()) {
-                        throw std::runtime_error("Fill operation requires an explicit output shape");
-                    }
-                    output_shape_ = shape;
+                // if constexpr (std::is_base_of_v<FillOpBase, Op>) {
+                //     // if (shape.empty()) {
+                //     //     throw std::runtime_error("Fill operation requires an explicit output shape");
+                //     // }
+                //     // output_shape_ = shape;
                 
-                } else {
-                    broadcasted_shape_ = broadcast_shapes_<Op>();
-                    output_shape_ = broadcasted_shape_;
-                }
-
+                // } else {
+                // }
+                
+                broadcasted_shape_ = broadcast_shapes_<Op>();
+                output_shape_ = broadcasted_shape_;
+                
                 if (outputs_.empty()) {
                     outputs_.push_back(nullptr);
                 }
