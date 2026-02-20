@@ -3,11 +3,6 @@
 
 namespace tensor {
     
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                  ALLOCATORS 
-    // -------------------------------------------------------------------------------------------------------------  
-
-
     /* Generic allocator interface: specializes for CPU and GPU */
     class Allocator {
     public:
@@ -16,11 +11,11 @@ namespace tensor {
         virtual ~Allocator() = default;
     };
 
-    /* CPU allocator: SIMD aligned */
+    /* CPU allocator: allows SIMD alignment */
     class CPUAllocator : public Allocator
     {
     public:
-        static constexpr size_t ALIGNMENT = 64;  //AVX-512/SIMD
+        static constexpr size_t ALIGNMENT = 64;  /* AVX-512/SIMD Alignment */
         void* allocate(size_t n) override;
         void deallocate(void* p) noexcept override;
     };
