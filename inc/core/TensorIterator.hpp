@@ -242,7 +242,7 @@ namespace tensor
             //         }
             //     }
             // }
-            // return result_shape;
+            return result_shape;
         }
 
         template <typename Op>
@@ -444,7 +444,8 @@ namespace tensor
          * used by the kernels for accessing the tensor Storage elements.  
          */
         template <typename Op>
-        void build(std::vector<size_t>& shape = {}, ScalarType cast_type = ScalarType::EMPTY)
+        void build(const std::vector<size_t>& shape = {},
+                   const ScalarType cast_type = ScalarType::EMPTY)
         {
             validate_inputs_metadata_<Op>();
 
@@ -474,7 +475,7 @@ namespace tensor
                     if (shape.empty()) {
                         throw std::runtime_error("Fill operation requires an explicit output shape");
                     }
-                    output_shape_ = std::move(shape);
+                    output_shape_ = shape;
                 
                 } else {
                     broadcasted_shape_ = broadcast_shapes_<Op>();
@@ -500,7 +501,7 @@ namespace tensor
             else if (Op::get_direction() == Direction::BACKWARD) {
 
                 if (inputs_.size() != Op::num_outputs()) {
-                    throw std::runtime_error("Backward ERROR ....")
+                    throw std::runtime_error("Backward ERROR ....");
                 }
 
                 if (outputs_.size() != Op::num_inputs()) {
@@ -547,10 +548,10 @@ namespace tensor
             throw std::out_of_range("output_data: index out of range");
             return outputs_[idx]->data_ptr();
         }
-        const void* output_data() const;
+        const void* output_data(int idx) const;
         
-        void* output_grad_data();
-        const void* output_grad_data() const;
+        void* output_grad_data(int idx);
+        const void* output_grad_data(int idx) const;
         
         // --------------------------- TYPED KERNEL ACCESSORS ---------------------------
 
