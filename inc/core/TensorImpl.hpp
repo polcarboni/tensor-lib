@@ -151,7 +151,7 @@ namespace tensor
         }
         
 
-        template <typename T, typename std::enable_if<std::is_arithmetic<T>::value, int>::type = 0>
+        template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
         TensorImpl(const std::vector<size_t>& shape,
                    T fill_value,
                    ScalarType dtype = get_scalar_type<T>(),
@@ -159,7 +159,7 @@ namespace tensor
                    bool requires_grad = false)
             : TensorImpl(shape, dtype, device, requires_grad)
         {
-        
+            fill_const(fill_value);
         }
                    
 
