@@ -1,6 +1,7 @@
 #pragma once 
-#include "Storage.hpp"
+#include "core/Storage.hpp"
 #include "core/Types.hpp"
+#include "core/Dispatchers.hpp"
 #include "autograd/AutogradMeta.hpp"
 #include <vector>
 #include <cassert>
@@ -31,14 +32,19 @@ namespace tensor
         bool requires_grad_ = false;
         std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
+
         // -------------------------------------------------------------------------------------------------------------  
         //                                                  GETTERS
         // -------------------------------------------------------------------------------------------------------------        
 
         std::vector<size_t>& get_shape() { return shape_; }
+        std::vector<size_t>& get_strides() { return strides_; }
         ScalarType get_dtype() { return dtype_; }
+        size_t get_total_size() { return total_size_; }
         Device get_device() { return device_; }
         bool requires_grad() { return requires_grad_; }
+        bool get_contiguous() { return contiguous_; }
+
 
         // -------------------------------------------------------------------------------------------------------------  
         //                                              HELPER FUNCTIONS
@@ -124,17 +130,6 @@ namespace tensor
 
 
         // ------------------------------------ CONSTRUCTOR OVERLOADS -------------------------------------
-        //         std::shared_ptr<Storage> storage_ = nullptr;
-        // ScalarType dtype_ =  ScalarType::Float32;
-        // Device device_ = {DeviceType::CPU, 0};
-        // size_t offset_ = 0;                         /* Elements offset */
-        // std::vector<size_t> shape_ = {};
-        // std::vector<size_t> strides_ = {};
-        // size_t total_size_ = 0;                     /* Number of elements */
-        // bool contiguous_ = true;
-
-        // bool requires_grad_ = false;
-        // std::unique_ptr<AutogradMeta> autograd_meta_ = nullptr;
 
         TensorImpl(const std::vector<size_t>& shape,
                    ScalarType dtype = ScalarType::Float32,
@@ -230,6 +225,22 @@ namespace tensor
 
 
         }
+
+
+        // -------------------------------------------------------------------------------------------------------------  
+        //                                          FILLING OPERATIONS
+        // -------------------------------------------------------------------------------------------------------------
+
+        /**
+         * Fill the tensor with a constant value. The provided value type is going to be
+         * casted to the tensor ScalarType.
+         */
+        template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+        void fill_const(T value)
+        {
+            ops::dispatch_unary_inplace<ops::FillConst>(*this, value);
+        }
+
 
 
         // -------------------------------------------------------------------------------------------------------------  
