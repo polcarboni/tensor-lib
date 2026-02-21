@@ -142,6 +142,24 @@ namespace tensor
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        return broadcast_shapes_matmul_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::SCALAR)        return broadcast_shapes_scalar_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::COPY)          return broadcast_shapes_copy_<Op>();
+
+        // TODO: if(outputs_): compare the computed output shapes to the previous one.
+        // If shapes are not the same throw error (do not change the previous existing tensor shape).
+
+        // // Validate the output shape
+        // if (output_) {
+        //     const auto& output_shape = output_->get_shape();
+
+        //     if (output_shape.size() != result_shape.size()) {
+        //         throw std::runtime_error("...Shape dimensionality mismatch...");
+        //     }
+
+        //     for (size_t i = 0; i < result_shape.size(); ++i) {
+        //         if (output_shape[i] != result_shape[i]) {
+        //             throw std::runtime_error("...Mismatch in one dimension...");
+        //         }
+        //     }
+        // }
     }
 
     template <typename Op>
@@ -185,24 +203,6 @@ namespace tensor
             }
         }
 
-        // TODO: this check is still required (should be moved out and computed for all the output shapes),
-        // 
-
-        // // Validate the output shape
-        // if (output_) {
-        //     const auto& output_shape = output_->get_shape();
-
-        //     if (output_shape.size() != result_shape.size()) {
-        //         throw std::runtime_error("...Shape dimensionality mismatch...");
-        //     }
-
-        //     for (size_t i = 0; i < result_shape.size(); ++i) {
-        //         if (output_shape[i] != result_shape[i]) {
-        //             throw std::runtime_error("...Mismatch in one dimension...");
-        //         }
-        //     }
-        // }
-
         return result_shape;
     }  
 
@@ -243,6 +243,10 @@ namespace tensor
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       return compute_strides_matmul_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::SCALAR)       return compute_strides_scalar_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::COPY)         return compute_strides_copy_<Op>();
+
+        // TODO: if(outputs_) check strides compatiblity. No hard requirement as in the shape, but at least the 
+        // shape length must be the same. 
+        // If they are compatible the previous strides can be substituted.
     }
 
     /**
