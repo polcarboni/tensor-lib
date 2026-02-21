@@ -1,48 +1,262 @@
+#include "core/Types.hpp"
 #include "core/TensorImpl.hpp"
+#include <cassert>
+#include <cstddef>
+
+
+/**
+ * TODO: check which templates require explicit instantiations
+ */
 
 namespace tensor {
 
-    // ---------------------------------------- HELPER FUNCTIONS ----------------------------------------
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  GETTERS
+    // -------------------------------------------------------------------------------------------------------------        
 
-    void TensorImpl::refresh_metadata() {
-        // TODO: recompute strides, total_size, etc.
-    }
+    std::vector<size_t>& TensorImpl::get_shape()   { return shape_; }
+    std::vector<size_t>& TensorImpl::get_strides() { return strides_; }
+    ScalarType TensorImpl::get_dtype()             { return dtype_; }
+    size_t TensorImpl::get_total_size()            { return total_size_; }
+    Device TensorImpl::get_device()                { return device_; }
+    bool TensorImpl::requires_grad()               { return requires_grad_; }
+    bool TensorImpl::get_contiguous()              { return contiguous_; }
 
-    size_t TensorImpl::get_physical_offset(const std::vector<size_t>& indices) const {
-        // TODO: compute linear offset from multidimensional indices
-        return 0;
-    }
 
-    // ---------------------------------------- CONSTRUCTOR ----------------------------------------
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                              HELPER FUNCTIONS
+    // -------------------------------------------------------------------------------------------------------------
 
-    TensorImpl::TensorImpl(const std::vector<size_t>& shape, ScalarType dtype, Device device, const void* src)
-        : shape_(shape), dtype_(dtype), device_(device)
+    void TensorImpl::refresh_metadata()
     {
-        // TODO: initialize storage_ with proper size based on shape and dtype
-        // TODO: copy data from src if provided
+        // The function computes the values of: total_size_ and strides_ based on shape_ 
+        if (shape_.empty()) {
+            total_size_ = (storage_ == nullptr) ? 0 : 1;
+            strides_.clear();
+            contiguous_ = true;
+            return;
+        }
+        
+        // Compute total_size_
+        total_size_ = 1;
+        for (size_t dim : shape_)
+            total_size_ *= dim;
+        
+        // Compute strides_
+        if (strides_.empty()) {
+            strides_.resize(shape_.size());
+            strides_.back() = 1;
+            for (int i = static_cast<int>(shape_.size()) - 2; i >= 0; --i) {
+                strides_[i] = strides_[i + 1] * shape_[i + 1];
+            }
+        } else {
+            if (strides_.size() != shape_.size())
+                throw std::runtime_error("TensorImpl::refresh_metadata: strides and shape size mismatch");
+        }
+
+        contiguous_ = is_contiguous();
+    }
+
+
+    size_t TensorImpl::get_physical_offset(const std::vector<size_t>& indices) const
+    {
+        assert(indices.size() == shape_.size());
+
+        size_t physical_offset = offset_;
+        
+        for (size_t i = 0; i < indices.size(); ++i) {
+            physical_offset += indices[i] * strides_[i];
+        }
+
+        return physical_offset;
+    }
+
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  CONSTRUCTORS
+    // -------------------------------------------------------------------------------------------------------------
+    
+    TensorImpl::TensorImpl() = default;
+    TensorImpl::~TensorImpl() = default;
+
+    TensorImpl::TensorImpl(const TensorImpl& other)
+        : storage_(other.storage_), dtype_(other.dtype_), device_(other.device_), offset_(other.offset_),
+            shape_(other.shape_), strides_(other.strides_), total_size_(other.total_size_),
+            contiguous_(other.contiguous_), requires_grad_(other.requires_grad_) 
+    {
+        if (other.autograd_meta_)
+            // TODO: might not work (check the AutograMeta struct) 
+            autograd_meta_ = std::make_unique<AutogradMeta>(*other.autograd_meta_);
+    }
+
+    TensorImpl& TensorImpl::operator=(const TensorImpl& other)
+    {
+        if (this != &other) {
+            TensorImpl temp(other);
+            std::swap(*this, temp);
+        }
+        return *this;
+    }
+
+    TensorImpl::TensorImpl(TensorImpl&& other) noexcept = default;
+    TensorImpl& TensorImpl::operator=(TensorImpl&& other) noexcept = default;
+
+
+    // ------------------------------------ CONSTRUCTOR OVERLOADS -------------------------------------
+
+    TensorImpl::TensorImpl(const std::vector<size_t>& shape,
+                           ScalarType dtype = ScalarType::Float32,
+                           Device device = {DeviceType::CPU, 0},
+                           bool requires_grad = false)
+        : shape_(std::move(shape)), dtype_(dtype), device_(std::move(device)), requires_grad_(requires_grad)
+    {
         refresh_metadata();
+
+        if(total_size_ > 0) {
+            storage_ = std::make_shared<Storage>(total_size_ * element_size(dtype_), device_);
+        } else {
+            storage_ = nullptr;
+        }
+
+        if (requires_grad_) {
+            autograd_meta_ = std::make_unique<AutogradMeta>();
+        }
+    }
+    
+
+    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+    TensorImpl::TensorImpl(const std::vector<size_t>& shape,
+                T fill_value,
+                ScalarType dtype = get_scalar_type<T>(),
+                Device device = {DeviceType::CPU, 0},
+                bool requires_grad = false)
+        : TensorImpl(shape, dtype, device, requires_grad)
+    {
+        fill_const(fill_value);
+    }
+                
+    TensorImpl::TensorImpl(const std::vector<size_t>& shape,
+                           ScalarType dtype = ScalarType::Float32,
+                           Device device = {DeviceType::CPU, 0},
+                           bool requires_grad = false,
+                           void* src = nullptr) { /* placeholder */}
+    
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                              INDEXERS/ACCESSORS
+    // -------------------------------------------------------------------------------------------------------------
+
+    // Data accessor helper
+    template <typename T>
+    T* TensorImpl::data_ptr()
+    {
+        if (!storage_) return nullptr;
+        return reinterpret_cast<T*>(static_cast<char*>(storage_->data()) + (offset_ * element_size(dtype_)));
     }
 
-    // ---------------------------------------- GEOMETRIC FUNCTIONS ----------------------------------------
-
-    bool TensorImpl::is_contiguous() const {
-        // TODO: check if strides_ correspond to contiguous memory layout
-        return false;
+    void* TensorImpl::data_ptr() {
+        if (!storage_) return nullptr;
+        return static_cast<char*>(storage_->data()) + (offset_ * element_size(dtype_));
     }
 
-    std::unique_ptr<TensorImpl> TensorImpl::clone() {
-        // TODO: deep copy
-        return nullptr;
+    const void* TensorImpl::data_ptr() const
+    {
+        if (!storage_) return nullptr;
+        return static_cast<const char*>(storage_->data()) + (offset_ * element_size(dtype_));
     }
 
-    std::unique_ptr<TensorImpl> TensorImpl::contiguous() const {
-        // TODO: return contiguous copy if not already contiguous
-        return nullptr;
+    template <typename T>
+    const T* TensorImpl::data_ptr() const
+    {
+        return static_cast<const *T>(data_ptr());
     }
 
-    std::unique_ptr<TensorImpl> TensorImpl::view(std::vector<size_t>& new_shape) const {
-        // TODO: create a view with new shape, sharing the same storage
-        return nullptr;
+    // TODO: provide const version
+    template <typename T>
+    T& TensorImpl::operator()(const std::initializer_list<size_t>& indices)
+    {
+        if (indices.size() != shape_.size())
+            throw std::runtime_error("operator(): Index dimension mismatch");
+
+        size_t idx = get_physical_offset(indices);
+        return static_cast<T*>(storage_->data())[idx];
+    }
+
+    std::shared_ptr<TensorImpl> TensorImpl::operator[](size_t index)
+    {
+        if (shape_.empty()) {
+            throw std::runtime_error("operator[]: cannot index a 0-dim tensor.");
+        }
+
+        if (index >= shape_[0]) {
+            throw std::out_of_range("Index out of range for dimension 0.");
+        }
+
+        // INCOMPLETE
+        return std::make_shared<TensorImpl>();  // placeholder return
+    }
+
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                          FILLING OPERATIONS
+    // -------------------------------------------------------------------------------------------------------------
+
+    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+    void TensorImpl::fill_const(T value)
+    {
+        ops::dispatch_unary_inplace<ops::FillConst>(*this, value);
+    }
+
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                          GEOMETRIC OPERATIONS
+    // -------------------------------------------------------------------------------------------------------------
+
+    /* Checks if the strides represent a contiguous representation of data */
+    bool TensorImpl::is_contiguous() const
+    {
+        // An empty tensor is considered as contiguous
+        if (shape_.empty())
+            return true;
+        
+        if (shape_.size() != strides_.size())
+            return false;
+        
+        // Computes the strides backwards
+        size_t expected_stride = 1;
+        for (size_t i = shape_.size(); i-- > 0;) {
+            
+            // Tensor with a shape = 0 is empty -> contiguous
+            if (shape_[i] == 0)
+                return true;
+            
+            if (strides_[i] != expected_stride)
+                return false;
+            
+            expected_stride *= shape_[i];
+        }
+        return true;
+    }
+
+
+    std::unique_ptr<TensorImpl> TensorImpl::view(std::vector<size_t>& new_shape) const
+    {
+        return std::make_unique<TensorImpl>(); //placeholder
+    }
+    
+    std::unique_ptr<TensorImpl> TensorImpl::reshape(std::initializer_list<size_t>& new_shape)
+    {
+        return std::make_unique<TensorImpl>(); //placeholder
+    }
+
+    std::unique_ptr<TensorImpl> TensorImpl::to_dtype(ScalarType target_dtype) const
+    {
+        if (this->dtype_ == target_dtype) {
+            return std::make_unique<TensorImpl>(*this);
+        }
+
+        // TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(*this, target_dtype);
+        // return std::make_shared<TensorImpl>(std::move(result));
     }
 
 } // namespace tensor
