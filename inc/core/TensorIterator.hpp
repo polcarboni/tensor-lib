@@ -29,8 +29,8 @@ namespace tensor
         bool       common_is_contiguous_ = false;
         bool       common_requires_grad_ = false;
 
-        std::vector<size_t>              broadcasted_shape_;
-        std::vector<size_t>              output_shape_;
+        std::vector<std::vector<size_t>> broadcasted_shapes_;
+        std::vector<std::vector<size_t>> output_shapes_;
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
@@ -70,23 +70,23 @@ namespace tensor
         // -------------------------------------------------- SHAPES BROADCASTING --------------------------------------------------
 
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_();
+        std::vector<std::vector<size_t>> broadcast_shapes_();
 
 
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_elementwise_();
+        std::vector<std::vector<size_t>> broadcast_shapes_elementwise_();
 
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_reduction_();
+        std::vector<std::vector<size_t>> broadcast_shapes_reduction_();
         
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_matmul_();
+        std::vector<std::vector<size_t>> broadcast_shapes_matmul_();
 
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_scalar_();
+        std::vector<std::vector<size_t>> broadcast_shapes_scalar_();
         
         template <typename Op>
-        std::vector<size_t> broadcast_shapes_copy_();
+        std::vector<std::vector<size_t>> broadcast_shapes_copy_();
 
 
         // -------------------------------------------------- STRIDES BROADCASTING --------------------------------------------------
