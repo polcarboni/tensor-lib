@@ -59,7 +59,7 @@ namespace tensor::ops
         iter.build<Op>();
 
         dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
-        return iter.get_output();
+        return iter.get_outputs()[0];
     }
     
 
@@ -84,7 +84,7 @@ namespace tensor::ops
         iter.build<Op>(dtype);
 
         dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
-        return iter.get_output();
+        return iter.get_outputs()[0];
     }
     
 
@@ -101,7 +101,7 @@ namespace tensor::ops
         iter.build<Op>();
 
         dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
-        return iter.get_output();
+        return iter.get_outputs()[0];
     }
 
     template <typename BackwardOp, typename... Args>
@@ -116,7 +116,7 @@ namespace tensor::ops
         iter.build<BackwardOp>();
 
         dispatch_impl_<BackwardOp>(iter, std::forward<Args>(args)...);
-        return iter.get_outputs();  // TODO: this is surely wrong. Return both output tensors?
+        return iter.get_outputs();
     }
 
 
