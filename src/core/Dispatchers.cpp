@@ -40,7 +40,7 @@ namespace tensor::ops
 
 
     /**
-     * 
+     * TODO: check which templates require explicit instantiations
      * 
      * TODO: check the correct use of return functions. return_output could be instead return_outputs[0] since
      *       TensorIterators generally suppots multiple output functions. A conveniency function for forward
@@ -125,9 +125,9 @@ namespace tensor::ops
     // -------------------------------------------------------------------------------------------------------------  
 
     template <typename Op, typename... Args>
-    TensorImpl   dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args)
+    TensorImpl dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args)
     {
-
+        return TensorImpl{}; // placeholder
     }
     
 
@@ -138,7 +138,7 @@ namespace tensor::ops
     template <typename Op, typename... Args>
     TensorImpl dispatch_comparison(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
     {
-
+        return TensorImpl{}; // placeholder
     }
 
     
@@ -149,7 +149,7 @@ namespace tensor::ops
     template <typename Op, typename... Args>
     TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args)
     {
-
+        return TensorImpl{}; // placeholder
     }
 
 } // namespace tensor::ops
