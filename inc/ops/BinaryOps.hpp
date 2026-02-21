@@ -1,6 +1,5 @@
 #pragma once
-#include "../core/Types.hpp"
-#include "../core/TensorIterator.hpp"
+#include "core/TensorIterator.hpp"
 #include <algorithm>
 #include <cstdint>
 
@@ -9,9 +8,7 @@ typedef struct CUstream_st* cudaStream_t;
 
 namespace tensor::ops
 {
-
-    class TensorIterator;
-
+    
     template <Direction Dir>
     class BinaryOpBase {
     protected:
