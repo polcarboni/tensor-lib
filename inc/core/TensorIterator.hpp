@@ -171,8 +171,7 @@ namespace tensor
          * used by the kernels for accessing the tensor Storage elements.  
          */
         template <typename Op>
-        void build(const std::vector<size_t>& shape = {},
-                   const ScalarType cast_type = ScalarType::EMPTY);
+        void build(const ScalarType cast_type = ScalarType::EMPTY);
         
         std::vector<TensorImpl*> get_outputs();
 

@@ -419,8 +419,7 @@ namespace tensor
     } 
 
     template <typename Op>
-    void TensorIterator::build(const std::vector<size_t>& shape = {},
-                const ScalarType cast_type = ScalarType::EMPTY)
+    void TensorIterator::build(const ScalarType cast_type = ScalarType::EMPTY)
     {
         validate_inputs_metadata_<Op>();
 
@@ -442,18 +441,6 @@ namespace tensor
                 }
                 common_dtype_ = cast_type;
             }
-
-            // FILLING OPERATION: uses the provided shape argument (no broadcasting)
-            // TODO: add check also on the operation template
-            // TODO: this should also use the dtype
-            // if constexpr (std::is_base_of_v<FillOpBase, Op>) {
-            //     // if (shape.empty()) {
-            //     //     throw std::runtime_error("Fill operation requires an explicit output shape");
-            //     // }
-            //     // output_shape_ = shape;
-            
-            // } else {
-            // }
             
             broadcasted_shape_ = broadcast_shapes_<Op>();
             output_shape_ = broadcasted_shape_;
