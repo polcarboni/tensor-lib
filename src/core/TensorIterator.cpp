@@ -6,6 +6,10 @@
 // #include "core/Types.hpp"
 // #include "core/TensorImpl.hpp"
 
+
+/**
+ * TODO: check which templates require explicit instantiations
+ */
 namespace tensor
 {
 
@@ -127,7 +131,9 @@ namespace tensor
     //                                                SHAPES BROADCASTING
     // ------------------------------------------------------------------------------------------------------------- 
        
-    // TODO: consider separating broadcasting and validation
+    // TODO: SEPARATE broadcasting and validation (validation is simply a size vector comparison).
+    // TODO-fix: The return types assumes always a single output. Might require more than one (they might be of the same
+    // shape in any relevant case but not changing would be a bad approach) 
     template <typename Op>
     std::vector<size_t> TensorIterator::broadcast_shapes_()
     {
@@ -144,6 +150,8 @@ namespace tensor
         if (inputs_.empty()) {
             return {};
         }
+
+        // TODO: provide fastpaths for: single input, inputs with same shapes. 
 
         size_t max_ndim = 0;
         for (auto* input: inputs_) {
@@ -177,6 +185,9 @@ namespace tensor
             }
         }
 
+        // TODO: this check is still required (should be moved out and computed for all the output shapes),
+        // 
+
         // // Validate the output shape
         // if (output_) {
         //     const auto& output_shape = output_->get_shape();
@@ -191,6 +202,7 @@ namespace tensor
         //         }
         //     }
         // }
+
         return result_shape;
     }  
 
