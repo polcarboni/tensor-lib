@@ -2,15 +2,14 @@
 #include <vector>
 #include <memory>
 #include "core/Types.hpp"
-// #include "core/TensorImpl.hpp"
 
 namespace tensor
 {
     /* Forward declarations */
+    
     struct TensorImpl;
-    // struct FillOpBase;
 
-    /* Itertot types classes */
+    /* Iterator types classes */
 
     enum class IterationKind { ELEMENT_WISE, REDUCTION, MATMUL, SCALAR, COPY };
     enum class Direction { FORWARD, BACKWARD };
@@ -35,9 +34,7 @@ namespace tensor
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
-        // -------------------------------------------------------------------------------------------------------------  
-        //                                                METADATA VALIDATION
-        // -------------------------------------------------------------------------------------------------------------
+        // -------------------------------------------------- METADATA VALIDATION --------------------------------------------------
 
         /**
          * Compute the output type using the type promotion rules and the operands ScalarType.
@@ -70,19 +67,12 @@ namespace tensor
         void validate_inputs_metadata_();
 
         
-        // -------------------------------------------------------------------------------------------------------------  
-        //                                                SHAPES BROADCASTING
-        // ------------------------------------------------------------------------------------------------------------- 
+        // -------------------------------------------------- SHAPES BROADCASTING --------------------------------------------------
 
-
-        // TODO: consider separating broadcasting and validation
         template <typename Op>
         std::vector<size_t> broadcast_shapes_();
 
-        /**
-         * Defines the common resulting shape for all the input tensors. Provide different shape computation
-         * paths based on the required operation types.
-         */
+
         template <typename Op>
         std::vector<size_t> broadcast_shapes_elementwise_();
 
@@ -99,25 +89,12 @@ namespace tensor
         std::vector<size_t> broadcast_shapes_copy_();
 
 
-        // -------------------------------------------------------------------------------------------------------------  
-        //                                                  STRIDES BROADCASTING
-        // ------------------------------------------------------------------------------------------------------------- 
+        // -------------------------------------------------- STRIDES BROADCASTING --------------------------------------------------
 
         template <typename Op>
         std::vector<std::vector<size_t>> compute_broadcast_strides_();
         
-        /**
-         * TODO: this function was completely implemented via LLM (it is wrong).
-         * 
-         * TODO: contiguous operands can use the strides member instead of computing it again.
-         * Other als omight already have the strides.
-         * 
-         * Strides can be hoever changed due to the broadcasting logic.
-         * TODO: provide fast path for operations that do not require it: filling, same size pointwise, other ...
-         * 
-         * Not sure how the forward and backward should be different. Maybe for this case
-         * (element wise operations) can be the same, but not for the other ones.
-         */
+
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_elementwise_();
         
@@ -133,9 +110,8 @@ namespace tensor
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_copy_();
 
-        // -------------------------------------------------------------------------------------------------------------  
-        //                                                  TYPES MATERIALIZATION
-        // ------------------------------------------------------------------------------------------------------------- 
+
+        // -------------------------------------------------- TYPES MATERIALIZATION --------------------------------------------------
 
         /**
          * Calls the type casting operations for tensor operators with dtype different from iterator.common_dtype_ 
@@ -144,9 +120,7 @@ namespace tensor
 
 
         // =============================================================================================================  
-        // =============================================================================================================  
         //                                                PUBLIC INTERFACES
-        // =============================================================================================================
         // =============================================================================================================
     
     public:
@@ -161,7 +135,7 @@ namespace tensor
         void set_inplace(bool val);
 
 
-        // --------------------------- DISPATCHER --------------------------- 
+        // -------------------------------------------------- DISPATCHER INTERFACES -------------------------------------------------- 
 
         void add_input(TensorImpl* tensor);
         void add_output(TensorImpl* tensor);
@@ -176,7 +150,7 @@ namespace tensor
         std::vector<TensorImpl*> get_outputs();
 
 
-        // --------------------------- KERNEL ACCESSORS ---------------------------
+        // -------------------------------------------------- KERNEL INTERFACES --------------------------------------------------
         
         void* input_data(int idx);
         const void* input_data(int idx) const;
@@ -186,9 +160,7 @@ namespace tensor
         
         void* output_grad_data(int idx);
         const void* output_grad_data(int idx) const;
-        
-
-        // --------------------------- TYPED KERNEL ACCESSORS ---------------------------
+    
 
         template <typename T>
         T* input_ptr(int idx);
