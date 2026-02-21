@@ -19,6 +19,7 @@ namespace tensor::ops
         static constexpr Direction direction_ = Direction::FORWARD;
 
     public:
+        // TODO: should these be defined in .cpp (static?). I think so.
         static constexpr bool supports_broadcasting() { return supports_broadcasting_; }
         static constexpr int num_inputs() { return num_inputs_; }
         static constexpr int num_outputs() { return num_outputs_; }
@@ -28,22 +29,7 @@ namespace tensor::ops
 
     struct FillConst : FillOpBase {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T value)
-        {
-            assert(get_scalar_type<T>() == iter->get_common_dtype());
-
-            T* output = iter.output_ptr<T>(0);
-
-            auto& outputs = iter.get_outputs();
-            size_t total_size = outputs[0]->get_total_size();
-
-            if (outputs[0]->get_contiguous()) {
-                // Fast path for contiguous tensor
-                std::fill(output, output + total_size, value);
-            } else {
-                throw std::runtime_error("FILLCONSTOP FOR NON CONTIGUOUS STILL NOT IMPLEMENTED");
-            }
-        }
+        static void cpu(tensor::TensorIterator& iter, T value);
         
         template <typename T>
         static void cuda(tensor::TensorIterator& iter, cudaStream_t stream = nullptr, T value = T{0});
@@ -57,6 +43,8 @@ namespace tensor::ops
         static void cuda(tensor::TensorIterator& iter, cudaStream_t stream, const T* src);
     };
 
+    // TODO-fix: one of these two have an error in the declaration (cannot be both with start and step,
+    // one of them must use start and end).
     struct FillArange : FillOpBase  {
         template <typename T>
         static void cpu(tensor::TensorIterator& iter, T start, T step);
