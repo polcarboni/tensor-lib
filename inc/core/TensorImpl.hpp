@@ -1,6 +1,7 @@
 #pragma once 
 #include "core/Storage.hpp"
 #include "core/Types.hpp"
+#include "autograd/AutogradMeta.hpp"
 #include <vector>
 #include <memory>
 #include <sstream>
@@ -11,7 +12,6 @@ namespace tensor
     // TODO: constructor to pass values to the storage (non-null initialization of vector)
     // TODO: check if view and clone are using same or new storage correctly
     struct Storage;
-    struct AutogradMeta;
 
     struct TensorImpl
     {
