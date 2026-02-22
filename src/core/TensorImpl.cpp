@@ -105,9 +105,9 @@ namespace tensor {
     // ------------------------------------ CONSTRUCTOR OVERLOADS -------------------------------------
 
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
-                           ScalarType dtype = ScalarType::Float32,
-                           Device device = {DeviceType::CPU, 0},
-                           bool requires_grad = false)
+                           ScalarType dtype,
+                           Device device,
+                           bool requires_grad)
         : shape_(std::move(shape)), dtype_(dtype), device_(std::move(device)), requires_grad_(requires_grad)
     {
         refresh_metadata();
@@ -127,19 +127,19 @@ namespace tensor {
     template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
                 T fill_value,
-                ScalarType dtype = get_scalar_type<T>(),
-                Device device = {DeviceType::CPU, 0},
-                bool requires_grad = false)
+                ScalarType dtype,
+                Device device,
+                bool requires_grad)
         : TensorImpl(shape, dtype, device, requires_grad)
     {
         fill_const(fill_value);
     }
                 
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
-                           ScalarType dtype = ScalarType::Float32,
-                           Device device = {DeviceType::CPU, 0},
-                           bool requires_grad = false,
-                           void* src = nullptr) { /* placeholder */}
+                           ScalarType dtype,
+                           Device device,
+                           bool requires_grad,
+                           void* src) { /* placeholder */}
     
     
     // -------------------------------------------------------------------------------------------------------------  

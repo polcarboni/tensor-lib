@@ -424,7 +424,7 @@ namespace tensor
     } 
 
     template <typename Op>
-    void TensorIterator::build(const ScalarType cast_type = ScalarType::EMPTY)
+    void TensorIterator::build(const ScalarType cast_type)
     {
         validate_inputs_metadata_<Op>();
 
