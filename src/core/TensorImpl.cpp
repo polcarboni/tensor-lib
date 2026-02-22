@@ -124,7 +124,7 @@ namespace tensor {
     }
     
 
-    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+    template <typename T, typename>
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
                 T fill_value,
                 ScalarType dtype,
@@ -168,7 +168,7 @@ namespace tensor {
     template <typename T>
     const T* TensorImpl::data_ptr() const
     {
-        return static_cast<const *T>(data_ptr());
+        return static_cast<const T*>(data_ptr());
     }
 
     // TODO: provide const version
@@ -201,7 +201,7 @@ namespace tensor {
     //                                          FILLING OPERATIONS
     // -------------------------------------------------------------------------------------------------------------
 
-    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+    template <typename T, typename>
     void TensorImpl::fill_const(T value)
     {
         ops::dispatch_unary_inplace<ops::FillConst>(*this, value);
