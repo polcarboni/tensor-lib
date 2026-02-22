@@ -1,11 +1,6 @@
 #include "core/TensorImpl.hpp"
 #include "core/TensorIterator.hpp"
-
-// #include <vector>
-// #include <memory>
-// #include "core/Types.hpp"
-// #include "core/TensorImpl.hpp"
-
+#include <algorithm>
 
 /**
  * TODO: check which templates require explicit instantiations
@@ -135,7 +130,7 @@ namespace tensor
     // TODO-fix: The return types assumes always a single output. Might require more than one (they might be of the same
     // shape in any relevant case but not changing would be a bad approach) 
     template <typename Op>
-    std::vector<size_t> TensorIterator::broadcast_shapes_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_()
     {
         if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  return broadcast_shapes_elementwise_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     return broadcast_shapes_reduction_<Op>();
@@ -163,69 +158,114 @@ namespace tensor
     }
 
     template <typename Op>
-    std::vector<size_t> TensorIterator::broadcast_shapes_elementwise_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_elementwise_()
     {
-        if (inputs_.empty()) {
-            return {};
-        }
+        std::vector<std::vector<size_t>> computed_shapes;
+        computed_shapes.resize(outputs_.size());
 
-        // TODO: provide fastpaths for: single input, inputs with same shapes. 
+        // Forward operations havea single output so looping over outputs_ is not required
+        if (Op::get_direction() == Direction::FORWARD) {
 
-        size_t max_ndim = 0;
-        for (auto* input: inputs_) {
-            if (!input) continue;
-            max_ndim = std::max(max_ndim, input->get_shape().size());
-        }
+            // FAST PATH 1: single operand. Forward the shape to output.
+            if(inputs_.size() == 1) {
+                computed_shapes[0] = inputs_[0]->get_shape();
+                return computed_shapes;
 
-        std::vector<size_t> result_shape(max_ndim, 1);
-
-        for (auto* input: inputs_)
-        {
-            const auto& current_shape = input->get_shape();
-            size_t current_ndim = current_shape.size();
-
-            for (size_t i = 0; i < current_ndim; ++i)
-            {
-                size_t result_idx = max_ndim - 1 - i;
-                size_t input_idx = current_ndim - 1 - i;
-
-                size_t input_dim_size = current_shape[input_idx];
-                size_t result_dim_size = result_shape[result_idx];
-
-                if (result_dim_size == 1) {
-                    result_shape[result_idx] = input_dim_size;
+            } else {
+                
+                // FAST PATH 2: if all inputs have same shape, forward shape to output.
+                std::vector<size_t> temp{};
+                bool shapes_match = true;
+                
+                for (auto& input : inputs_) {
+                    if(!temp.empty() && temp != input->get_shape()) {
+                        shapes_match = false;
+                        break;
+                    }
+                    temp = input->get_shape();
                 }
-                else if (input_dim_size != 1 && input_dim_size != result_dim_size) {
-                    throw std::runtime_error("Error: shapes could not be broadcast together: " +
-                                                std::to_string(input_dim_size) + ", " +
-                                                std::to_string(result_dim_size));
+                
+                if (shapes_match)
+                {
+                    computed_shapes[0] = temp;
+                    return computed_shapes;
                 }
             }
+
+            throw std::runtime_error("Acutal broadcasting is not implemented yet"); 
+
+            /* IMPLEMENTATION OF THE GENERAL CASE (CONSIDER ONLY FORWARD 1 OUTPUT) */
+            /**
+             * Different sized shapes: check if it can be left padded with ones. 
+             * There are probably some weird cases of empty tensors that will break this
+             * ....
+             * 
+             * If one of the tensor has a 0 dimension this should throw. This has to be assessed here but where in the pipeline?
+             * Probably at the beginning (common to forward and backward) but looping dimensions should also achieve other stuff in the mean time.
+             * 
+             * TODO: fix the following incomplete implementation:
+             *       Should iterate from the rightmost value of each input shape, check for all inputs if the value is the same, different from 0
+             *       or they are all 1s except for a single value.
+             *       (This while considering a single output since it is the forward version). 
+             */
+
+            /*
+            size_t max_ndim = 0;
+            for (auto& input : inputs_) {
+                max_ndim = std::max(max_ndim, input->get_shape().size());
+            }
+
+
+            for (size_t i = 0; i < padded_sizes.size(); ++i) {
+                for (auto& input : inputs_) {
+                    input->get_shape()[input->get_shape().size() - 1 - i];
+                }
+            }
+
+
+            // Left padding with ones
+            for (auto& input : inputs_) {
+                
+                auto input_shape = input->get_shape();
+                auto input_shape_size = input_shape.size(); 
+                size_t pad_offset = max_ndim - input_shape_size;
+                
+                if (pad_offset >= 1) {
+                    std::vector<size_t> padded_size = input_shape.insert(input_shape.begin(), 1);
+                } else {
+                    padded_sizes.push_back(input->get_shape().size())
+                }
+            }
+            */
         }
 
-        return result_shape;
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("backward elementwise shape broadcasting not implemented");
+        }
+
+        return computed_shapes;
     }  
 
     template <typename Op>
-    std::vector<size_t> broadcast_shapes_reduction_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_reduction_()
     {
         return {0}; // placeholder
     }
     
     template <typename Op>
-    std::vector<size_t> broadcast_shapes_matmul_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_matmul_()
     {
         return {0}; // placeholder
     }
 
     template <typename Op>
-    std::vector<size_t> broadcast_shapes_scalar_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_scalar_()
     {
         return {0}; // placeholder
     }
     
     template <typename Op>
-    std::vector<size_t> broadcast_shapes_copy_()
+    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_copy_()
     {
         return {0}; // placeholder
     }
@@ -267,84 +307,12 @@ namespace tensor
         std::vector<std::vector<size_t>> strides;
 
         if constexpr (Op::get_direction() == Direction::FORWARD) {
-            
-            strides.reserve(inputs_.size() + outputs_.size());
 
-            for (auto* operand : inputs_) {
-                std::vector<size_t> operand_strides;
-                size_t ndim = output_shape_.size();
-
-                const auto& op_shape = operand->get_shape();
-                const auto& op_strides = operand->get_strides();
-
-                if (operand->is_contiguous()) {
-                    operand_strides.resize(ndim, 0);
-                    size_t stride = 1;
-                    for (int i = static_cast<int>(ndim) - 1; i >= 0; --i) {
-                        operand_strides[i] = stride;
-                        stride *= output_shape_[i];
-                    }
-                } else {
-                    // strides from operand metadata and
-                    // pad with 0s left dimensions added by broadcasting
-
-                    operand_strides.resize(ndim, 0);
-                    size_t ndim_op = op_strides.size();
-                    size_t offset = ndim - ndim_op;     // padding
-
-                    for (size_t i = 0; i < ndim_op; ++i) {
-                        operand_strides[offset + i] = op_strides[i];
-                    }
-                }
-
-                // Broadcasting rule: operand size = 1 in dimension -> stride = 0
-                size_t ndim_op = op_shape.size();
-                size_t offset = ndim - ndim_op;
-
-                for (size_t i = 0; i < ndim; ++i) {
-                    // left padded dimensions are implicitly size-1
-                    bool is_prepended = (i < offset);
-                    bool is_size_one = !is_prepended && (op_shape[i - offset] == 1);
-                    if(!is_prepended || is_size_one) {
-                        operand_strides[i] = 0;
-                    }
-                }
-                strides.push_back(std::move(operand_strides));
-            }
-
-            for (auto* operand : outputs_) {
-                std::vector<size_t> operand_strides;
-                size_t ndim = broadcasted_shape_.size();
-
-                if(operand->is_contiguous()) {
-                    // output never broadcast-reduced
-                    operand_strides.resize(ndim, 0);
-                    size_t stride = 1;
-                    for (int i = static_cast<int>(ndim) - 1; i >= 0; --i) {
-                        operand_strides[i] = stride;
-                        stride *= output_shape_[i];
-                    }
-                } else {
-                    // Non contiguous output: use actual stride directly
-                    const auto& op_strides = operand->get_strides();
-                    size_t ndim_op = op_strides.size();
-                    operand_strides.resize(ndim, 0);
-                    size_t offset = ndim - ndim_op;
-
-                    for (size_t i = 0; i < ndim_op; ++i) {
-                        operand_strides[offset + i] = op_strides[i];
-                    }
-                }
-
-                strides.push_back(std::move(operand_strides));
-            }
         }
 
         else if (Op::get_direction() == Direction::BACKWARD) {
-            throw std::runtime_error("Compute element-wise strides: backward is NOT IMPLEMENTED");
+            throw std::runtime_error("TensorIterator: backward elementwise not implemented");
         }
-
-        return strides;
     }
 
     template <typename Op>
@@ -446,15 +414,15 @@ namespace tensor
                 common_dtype_ = cast_type;
             }
             
-            broadcasted_shape_ = broadcast_shapes_<Op>();
-            output_shape_ = broadcasted_shape_;
+            broadcasted_shapes_ = broadcast_shapes_<Op>();
+            output_shapes_ = broadcasted_shapes_;
             
             if (outputs_.empty()) {
                 outputs_.push_back(nullptr);
             }
 
             if (!outputs_[0]) {
-                nullary_output_ = std::make_unique<TensorImpl>(output_shape_, common_dtype_, common_device_, common_requires_grad_);
+                nullary_output_ = std::make_unique<TensorImpl>(output_shapes_[0], common_dtype_, common_device_, common_requires_grad_);
                 outputs_[0] = nullary_output_.get();
             }
 
