@@ -60,7 +60,7 @@ namespace tensor::ops
     TensorImpl dispatch_binary(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
 
     template <typename BackwardOp, typename... Args>
-    std::pair<TensorImpl&, TensorImpl&> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
+    std::pair<TensorImpl, TensorImpl> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
 
 
     // ------------------------------------------------ TERNARY DISPATCHERS ------------------------------------------------

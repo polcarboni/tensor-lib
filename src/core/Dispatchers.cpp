@@ -105,7 +105,7 @@ namespace tensor::ops
     }
 
     template <typename BackwardOp, typename... Args>
-    std::pair<TensorImpl&, TensorImpl&> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    std::pair<TensorImpl, TensorImpl> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
     {
         TensorIterator iter;
         iter.add_input(output.autograd_meta_.grad_);    //Upstream grad
