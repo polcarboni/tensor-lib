@@ -290,12 +290,7 @@ namespace tensor
     }
 
     /**
-     * TODO: this function was completely implemented via LLM (it is wrong).
-     * 
-     * TODO: contiguous operands can use the strides member instead of computing it again.
-     * Other als omight already have the strides.
-     * 
-     * Strides can be hoever changed due to the broadcasting logic.
+     * Strides can be however changed due to the broadcasting logic.
      * TODO: provide fast path for operations that do not require it: filling, same size pointwise, other ...
      * 
      * Not sure how the forward and backward should be different. Maybe for this case
@@ -317,26 +312,42 @@ namespace tensor
 
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_(){
-        if (Op::get_direction() == Direction::FORWARD) {}
-        else if (Op::get_direction() == Direction::BACKWARD) {}
+        if (Op::get_direction() == Direction::FORWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_reduction_() not implemented");
+        }
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_reduction_() backward not implemented");
+        }
     }
     
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_matmul_(){
-        if (Op::get_direction() == Direction::FORWARD) {}
-        else if (Op::get_direction() == Direction::BACKWARD) {}
+        if (Op::get_direction() == Direction::FORWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_matmul_() not implemented");
+        }
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_matmul_() backward not implemented");
+        }
     }
     
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_scalar_(){
-        if (Op::get_direction() == Direction::FORWARD) {}
-        else if (Op::get_direction() == Direction::BACKWARD) {}
+        if (Op::get_direction() == Direction::FORWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_scalar_() not implemented");
+        }
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_scalar_() backward not implemented");
+        }
     }
     
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_copy_(){
-        if (Op::get_direction() == Direction::FORWARD) {}
-        else if (Op::get_direction() == Direction::BACKWARD) {}
+        if (Op::get_direction() == Direction::FORWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_copy_() not implemented");
+        }
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("TensorIterator: compute_strides_copy_() backward not implemented");
+        }
     }
 
 
