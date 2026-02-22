@@ -167,31 +167,30 @@ namespace tensor
         if (Op::get_direction() == Direction::FORWARD) {
 
             // FAST PATH 1: single operand. Forward the shape to output.
-            if(inputs_.size() == 1) {
+            if (inputs_.size() == 1) {
                 computed_shapes[0] = inputs_[0]->get_shape();
                 return computed_shapes;
 
             } else {
-                
-                // FAST PATH 2: if all inputs have same shape, forward shape to output.
                 std::vector<size_t> temp{};
-                bool shapes_match = true;
                 
+                // Check if the operands have all the same shape.
                 for (auto& input : inputs_) {
                     if(!temp.empty() && temp != input->get_shape()) {
-                        shapes_match = false;
+                        is_broadcasted_ = true;
                         break;
                     }
                     temp = input->get_shape();
                 }
-                
-                if (shapes_match)
+
+                // FAST PATH 2: if all inputs have same shape, forward shape to output.
+                if (!is_broadcasted_)
                 {
                     computed_shapes[0] = temp;
                     return computed_shapes;
                 }
             }
-
+        
             throw std::runtime_error("Acutal broadcasting is not implemented yet"); 
 
             /* IMPLEMENTATION OF THE GENERAL CASE (CONSIDER ONLY FORWARD 1 OUTPUT) */
@@ -300,8 +299,27 @@ namespace tensor
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_elementwise_()
     {
         std::vector<std::vector<size_t>> strides;
+        strides.resize(inputs_.size() + outputs_.size());
 
         if constexpr (Op::get_direction() == Direction::FORWARD) {
+            
+            // Fast paths. If both are contiguous I can just forward the operand strides values.
+            // This is only true if no broadcast is computed
+            if (common_is_contiguous_ && !is_broadcasted_)
+            {
+                for (auto& input : inputs_) {
+                    strides.push_back(input->get_strides());
+                }
+
+                for (auto& output : outputs_) {
+                    strides.push_back(output->get_strides());
+                }
+
+                return strides;
+            }
+
+            // TODO: What if the operands are not contiguous but they have the same shape?
+            throw std::runtime_error("compute_strides_elementwise_(): general case is not yet implemented");
 
         }
 
