@@ -31,6 +31,8 @@ namespace tensor
 
         std::vector<std::vector<size_t>> broadcasted_shapes_;
         std::vector<std::vector<size_t>> output_shapes_;
+
+        bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
