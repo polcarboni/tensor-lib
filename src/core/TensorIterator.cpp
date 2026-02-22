@@ -329,7 +329,8 @@ namespace tensor
     }
 
     template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_(){
+    std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_()
+    {
         if (Op::get_direction() == Direction::FORWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_reduction_() not implemented");
         }
@@ -339,7 +340,8 @@ namespace tensor
     }
     
     template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::compute_strides_matmul_(){
+    std::vector<std::vector<size_t>> TensorIterator::compute_strides_matmul_()
+    {
         if (Op::get_direction() == Direction::FORWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_matmul_() not implemented");
         }
@@ -349,7 +351,8 @@ namespace tensor
     }
     
     template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::compute_strides_scalar_(){
+    std::vector<std::vector<size_t>> TensorIterator::compute_strides_scalar_()
+    {
         if (Op::get_direction() == Direction::FORWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_scalar_() not implemented");
         }
@@ -359,7 +362,8 @@ namespace tensor
     }
     
     template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::compute_strides_copy_(){
+    std::vector<std::vector<size_t>> TensorIterator::compute_strides_copy_()
+    {
         if (Op::get_direction() == Direction::FORWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_copy_() not implemented");
         }
