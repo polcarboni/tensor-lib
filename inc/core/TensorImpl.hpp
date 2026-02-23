@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 #include <sstream>
+#include <iomanip>
+#include <functional>
 
 namespace tensor
 {
@@ -105,24 +107,25 @@ namespace tensor
 
 
         // -------------------------------------------------- GEOMETRIC OPERATIONS --------------------------------------------------
-    
-        /* Checks if the strides represent a contiguous representation of data */
-        bool is_contiguous() const;
 
+        /* Checks if the strides represent a contiguous representation of data */
+        
+        bool is_contiguous() const;        
+        
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
         std::unique_ptr<TensorImpl> reshape(std::initializer_list<size_t>& new_shape);
 
         // Defined for the Iterator automatic casting. The type for the user operation might be different.
         // TODO: in this case. Move this to private and declare it as Iterator friend.
         std::unique_ptr<TensorImpl> to_dtype(ScalarType target_dtype) const;
-
+    
     };
 
 
     
-    // -------------------------------------------- METADATA PRINTING UTITLIES --------------------------------------------
+    // -------------------------------------------- PRINTING UTITLIES --------------------------------------------
 
-    inline std::string to_string(const TensorImpl& tensor)
+    inline std::string metadata_to_string(const TensorImpl& tensor)
     {
         std::ostringstream oss;
 
@@ -157,6 +160,68 @@ namespace tensor
 
         oss << "\n}";
         
+        return oss.str();
+    }
+
+
+    inline std::string to_string(const TensorImpl& tensor)
+    {
+        std::ostringstream oss;
+        oss << std::setprecision(4) << std::fixed;
+
+        const std::string prefix = "Tensor (";
+        const int prefix_len = static_cast<int>(prefix.size());
+        oss << prefix;
+
+        if (!tensor.storage_ || tensor.total_size_ == 0) {
+            // TODO: add dtype, device anyway? I guess so (at least device)
+            oss << "[])";
+            return oss.str();
+        }
+
+        // Recursive lambda function
+        std::function<void(size_t dim, std::vector<size_t>& indices, int indent)> print_dim;
+
+        print_dim = [&](size_t dim, std::vector<size_t>& indices, int indent)
+        {
+            if (dim == tensor.shape_.size()) {
+                size_t physical = tensor.get_physical_offset(indices);
+
+                DISPATCH_ALL_TYPES(tensor.dtype_, "to_string", [&] {
+                    oss << *reinterpret_cast<const scalar_t*>(static_cast<const char*>(tensor.storage_->data()) + physical * element_size(tensor.dtype_));
+                });
+
+                return;
+            }
+
+            std::string pad(prefix_len + indent + 1, ' ');
+            oss << "[";
+
+            for (size_t i = 0; i < tensor.shape_[dim]; ++i) {
+                indices[dim] = i;
+
+                // Inner dimensions
+                if (dim < tensor.shape_.size() - 1) {
+                    if (i > 0) {
+                        oss << ",\n";
+                        if (tensor.shape_.size() - dim >= 4) oss << "\n";
+                        oss << pad;
+                    }
+                    print_dim(dim + 1, indices, indent + 1);
+                } else {
+                    // Innermost dimension
+                    if (i > 0) oss << ", ";
+                    print_dim(dim + 1, indices, indent + 1);
+                }
+            }
+
+            oss << "]";
+        };
+
+        std::vector<size_t> indices(tensor.shape_.size(), 0);
+        print_dim(0, indices, 0);
+        oss << ")";
+
         return oss.str();
     }
 
