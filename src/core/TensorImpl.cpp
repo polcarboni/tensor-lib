@@ -1,5 +1,7 @@
 #include "core/Types.hpp"
 #include "core/TensorImpl.hpp"
+#include "core/Dispatchers.hpp"
+#include "ops/FillStorageOps.hpp"
 #include <cassert>
 #include <cstddef>
 
@@ -107,7 +109,8 @@ namespace tensor {
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
                            ScalarType dtype,
                            Device device,
-                           bool requires_grad)
+                           bool requires_grad,
+                           void* src)
         : shape_(std::move(shape)), dtype_(dtype), device_(std::move(device)), requires_grad_(requires_grad)
     {
         refresh_metadata();
@@ -120,6 +123,10 @@ namespace tensor {
 
         if (requires_grad_) {
             autograd_meta_ = std::make_unique<AutogradMeta>();
+        }
+
+        if (src) {
+            throw std::runtime_error("REFACTORED: TO BE IMPLEMENTED");
         }
     }
     
@@ -134,12 +141,6 @@ namespace tensor {
     {
         fill_const(fill_value);
     }
-                
-    TensorImpl::TensorImpl(const std::vector<size_t>& shape,
-                           ScalarType dtype,
-                           Device device,
-                           bool requires_grad,
-                           void* src) { /* placeholder */}
     
     
     // -------------------------------------------------------------------------------------------------------------  

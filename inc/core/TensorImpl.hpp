@@ -56,12 +56,7 @@ namespace tensor
         TensorImpl(const TensorImpl& other);
         TensorImpl& operator=(const TensorImpl& other);
         TensorImpl(TensorImpl&& other) noexcept;
-        TensorImpl& operator=(TensorImpl&& other) noexcept;
-
-        TensorImpl(const std::vector<size_t>& shape,
-                   ScalarType dtype = ScalarType::Float32,
-                   Device device = {DeviceType::CPU, 0},
-                   bool requires_grad = false);        
+        TensorImpl& operator=(TensorImpl&& other) noexcept;  
 
         template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
         TensorImpl(const std::vector<size_t>& shape,
