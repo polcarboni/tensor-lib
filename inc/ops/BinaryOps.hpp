@@ -26,38 +26,22 @@ namespace tensor::ops
     };
 
     struct BinaryAdd : BinaryOpBase<Direction::FORWARD> {
-
-        template <typename T>
-        static void cpu(TensorIterator& iter) {
-            assert(get_scalar_type<T>() == iter->get_common_dtype());
-        }
-
-        template <typename T>
+        static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
 
-    struct BinaryAddBackward : BinaryOpBase<Direction::BACKWARD> {
-
-        template <typename T>
+    struct BinaryAddBackward : BinaryOpBase<Direction::BACKWARD> {        
         static void cpu(TensorIterator& iter);
-
-        template <typename T>
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
 
     struct BinarySub : BinaryOpBase<Direction::FORWARD> {
-        template <typename T>
         static void cpu(TensorIterator& iter);
-
-        template <typename T>
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
 
     struct BinaryExp : BinaryOpBase<Direction::FORWARD> {
-        template <typename T>
         static void cpu(TensorIterator& iter);
-
-        template <typename T>
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
     
