@@ -28,11 +28,8 @@ namespace tensor::ops
     };
 
     struct FillConst : FillOpBase {
-        template <typename T>
-        static void cpu(TensorIterator& iter, T value);
-        
-        template <typename T>
-        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, T value = T{0});
+        static void cpu(TensorIterator& iter, double value);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double value);
     };
     
     struct FillBuffer : FillOpBase  {

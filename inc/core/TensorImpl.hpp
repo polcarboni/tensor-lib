@@ -58,10 +58,9 @@ namespace tensor
         TensorImpl(TensorImpl&& other) noexcept;
         TensorImpl& operator=(TensorImpl&& other) noexcept;  
 
-        template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
         TensorImpl(const std::vector<size_t>& shape,
-                   T fill_value,
-                   ScalarType dtype = get_scalar_type<T>(),
+                   double fill_value,
+                   ScalarType dtype = ScalarType::Float32,
                    Device device = {DeviceType::CPU, 0},
                    bool requires_grad = false);
 
@@ -101,8 +100,8 @@ namespace tensor
          * Fill the tensor with a constant value. The provided value type is going to be
          * casted to the tensor ScalarType.
          */
-        template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-        void fill_const(T value);
+        // template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+        void fill_const(double value);
 
 
         // -------------------------------------------------- GEOMETRIC OPERATIONS --------------------------------------------------

@@ -130,10 +130,8 @@ namespace tensor {
         }
     }
     
-
-    template <typename T, typename>
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
-                T fill_value,
+                double fill_value,
                 ScalarType dtype,
                 Device device,
                 bool requires_grad)
@@ -202,8 +200,7 @@ namespace tensor {
     //                                          FILLING OPERATIONS
     // -------------------------------------------------------------------------------------------------------------
 
-    template <typename T, typename>
-    void TensorImpl::fill_const(T value)
+    void TensorImpl::fill_const(double value)
     {
         ops::dispatch_unary_inplace<ops::FillConst>(*this, value);
     }
@@ -265,8 +262,6 @@ namespace tensor {
     /* Explicit instantiations */
 
     #define INSTANTIATE(T)                                                                              \
-        template TensorImpl::TensorImpl<T>(const std::vector<size_t>&, T, ScalarType, Device, bool);    \
-        template void TensorImpl::fill_const<T>(T);                                                     \
         template T* TensorImpl::data_ptr<T>();                                                          \
         template const T* TensorImpl::data_ptr<T>() const;                                              \
         template T& TensorImpl::operator()<T>(const std::initializer_list<size_t>&);                    
