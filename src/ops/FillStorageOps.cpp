@@ -28,42 +28,23 @@ namespace tensor::ops
             scalar_t* output = iter.output_ptr<scalar_t>(0);
             size_t total_size = iter.get_outputs()[0]->get_total_size();
             
+            // TODO-fix: transposed tensors (non contiguous) should also use this
             if (iter.get_outputs()[0]->get_contiguous()) {
                 std::fill(output, output + total_size, static_cast<scalar_t>(value));
                 
             } else {
+                // Useful for cases of partial ownership.
                 throw std::runtime_error("FILLCONSTOP FOR NON CONTIGUOUS STILL NOT IMPLEMENTED");
             }
         });
     }
 
-    template <typename T>
-    void FillArange::cpu(TensorIterator& iter, T start, T step) {}
+    void FillArange::cpu(TensorIterator& iter, double start, double step) {}
 
-    template <typename T>
-    void FillLinspace::cpu(TensorIterator& iter, T start, T step) {}
+    void FillLinspace::cpu(TensorIterator& iter, double start, double step) {}
 
-    template <typename T>
-    void FillRandomUniform::cpu(TensorIterator& iter, T low, T high, uint64_t seed) {}
+    void FillRandomUniform::cpu(TensorIterator& iter, double low, double high, uint64_t seed) {}
 
-    template <typename T>
-    void FillRandomNormal::cpu(TensorIterator& iter, T mean, T stddev, uint64_t seed) {}
-
-
-    // Explicit instantiations
-
-    #define INSTANTIATE_FILL_OPS_CPU(T)                                           \
-        template void FillArange::cpu<T>(TensorIterator&, T, T);                  \
-        template void FillLinspace::cpu<T>(TensorIterator&, T, T);                \
-        template void FillRandomUniform::cpu<T>(TensorIterator&, T, T, uint64_t); \
-        template void FillRandomNormal::cpu<T>(TensorIterator&, T, T, uint64_t);
-
-    INSTANTIATE_FILL_OPS_CPU(float)
-    INSTANTIATE_FILL_OPS_CPU(double)
-    INSTANTIATE_FILL_OPS_CPU(int32_t)
-    INSTANTIATE_FILL_OPS_CPU(int64_t)
-    INSTANTIATE_FILL_OPS_CPU(bool)
-
-    #undef INSTANTIATE_FILL_OPS_CPU
+    void FillRandomNormal::cpu(TensorIterator& iter, double mean, double stddev, uint64_t seed) {}
 
 } // namespace tensor::ops
