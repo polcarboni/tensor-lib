@@ -127,15 +127,24 @@ namespace tensor
     
     public:
         
-        TensorIterator() = default;
-        TensorIterator(const TensorIterator&) = delete;
-        TensorIterator& operator=(const TensorIterator&) = delete;
-        TensorIterator(TensorIterator&&) = default;
-        TensorIterator& operator=(TensorIterator&&) = default;
+        TensorIterator();
+        TensorIterator(const TensorIterator&);
+        TensorIterator& operator=(const TensorIterator&);
+        TensorIterator(TensorIterator&&);
+        TensorIterator& operator=(TensorIterator&&);
 
+
+        // -------------------------------------------------- GETTERS --------------------------------------------------
+
+        std::vector<TensorImpl*> get_outputs();
+        
         bool get_inplace();
+        ScalarType get_common_dtype();
+        Device get_common_device();
+        bool get_common_is_contiguous();
+        bool get_common_requires_grad();
+        
         void set_inplace(bool val);
-
 
         // -------------------------------------------------- DISPATCHER INTERFACES -------------------------------------------------- 
 
@@ -148,8 +157,6 @@ namespace tensor
          */
         template <typename Op>
         void build(const ScalarType cast_type = ScalarType::EMPTY);
-        
-        std::vector<TensorImpl*> get_outputs();
 
 
         // -------------------------------------------------- KERNEL INTERFACES --------------------------------------------------
