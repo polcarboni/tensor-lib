@@ -1,87 +1,171 @@
-#pragma once
+#include "core/TensorImpl.hpp"
+#include "core/TensorIterator.hpp"
 #include <utility>
 
-namespace tensor
-{
-    /* Forward declarations */
-    
-    enum class ScalarType;
-    struct Device;
-    struct TensorImpl;
-    struct TensorIterator;
-
-} // namespace tensor
-
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#endif
 
 namespace tensor::ops
 {
+
     /**
-     * The largest part of declarations is currently wrong as it does not requires device and dtype being passed
-     * separately (with the single excpetion which is the nullary dispatcher).
+     * TODO:
+     * these require explicit instantiation for all the different operations.
+     * Consider moving them back to .hpp or find another solution:
      * 
-     * The values will be extracted by the iterator from the provided operators.
-     * TODO: check correct dispatchers type.
-     * TODO: check which possible dispatchers are missing: matmul, backward versions
-     * TODO: check correct dispatcher typing: inline must be void while the other ones have to return (forward one value, backward 2)
-     * TODO: check what can be done with ternary operations. Backward? Technically possible (might be useful for GEMM operations).
-     *       Ideally any type of dispatcher can be defined, it must be associated to operations that respect the TensorIterator building pattern
-     *       used in the different operations.
+     * Explicit instantiation of all of them is not achievable. I have to provide that sort of
+     * table for explicit instantiation since this is going to be also required by the TensorIterator.
      */
 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                               DISPATCHER IMPLEMENTATION
+    // -------------------------------------------------------------------------------------------------------------  
 
-    // ---------------------------------------------- DISPATCHER IMPLEMENTATION ----------------------------------------------
+    template <typename Op, typename... Args>
+    void dispatch_impl_(TensorIterator& iter, Args&&... args)
+    {
+        DISPATCH_ALL_TYPES(iter.get_common_dtype(), "dispatch", [&]
+        {
+            if (iter.get_common_device().type == DeviceType::CPU) {
+                Op::template cpu<scalar_t>(iter, std::forward<Args>(args)...);
+            }
+            #ifdef USE_CUDA
+            else if (iter.get_common_device().type == DeviceType::CUDA) {
+                
+                // Current support only of single stream
+                cudaStream_t stream = cudaStream_t(0);
+                Op::template cuda<scalar_t>(iter, stream, std::forward<Args>(args)...);
+            }
+            #endif
+            else {
+                throw std::runtime_error("dispatch: Unsupported device " + to_string(iter.get_common_device()));
+            }
+        });
+    }
+
+    // template <typename Op, typename... Args>
+    // TensorImpl dispatch_nullary(Device device, ScalarType dtype, std::vector<size_t>& shape, Args... args)
+    // {
+    //     TensorIterator iter;
+    //     iter.build<Op>(shape);
+    //     dispatch_impl_<Op>(iter, args...);
+
+    //     return iter.get_output();
+    // }
+
+
+    /**
+     * TODO: check which templates require explicit instantiations
+     * 
+     * TODO: check the correct use of return functions. return_output could be instead return_outputs[0] since
+     *       TensorIterators generally suppots multiple output functions. A conveniency function for forward
+     *       operations might not be worth the use.
+     */
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  UNARY DISPATCHERS
+    // -------------------------------------------------------------------------------------------------------------  
     
     template <typename Op, typename... Args>
-    void dispatch_impl_(TensorIterator& iter, Args&&... args);
+    TensorImpl dispatch_unary(TensorImpl& in, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_input(&in);
+        iter.build<Op>();
 
-    // TODO: check if required (probably not)
-    // template <typename Op, typename... Args>
-    // TensorImpl dispatch_nullary(Device device, ScalarType dtype, std::vector<size_t>& shape, Args... args);
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+        return *iter.get_outputs()[0];
+    }
+    
 
+    // THE ONLY CORRECT ONE (FIX THE OTHER ONES)
+    template <typename Op, typename... Args>
+    void dispatch_unary_inplace(TensorImpl& in, Args&&... args)
+    {   
+        TensorIterator iter;
+        iter.add_output(&in);
+        iter.add_input(&in);
+        iter.set_inplace(true);
+        iter.build<Op>();
 
-
-
-    // ------------------------------------------------ UNARY DISPATCHERS ------------------------------------------------
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
 
     template <typename Op, typename... Args>
-    TensorImpl dispatch_unary(TensorImpl& in, Args&&... args);
+    TensorImpl dispatch_unary_casting(TensorImpl& in, ScalarType dtype, Args&&... args)
+    {   
+        TensorIterator iter;
+        iter.add_input(&in);
+        iter.build<Op>(dtype);
 
-    // THIS ONE HAS THE CORRECT SIGNATURE
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+        return *iter.get_outputs()[0];
+    }
+    
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                 BINARY DISPATCHERS
+    // -------------------------------------------------------------------------------------------------------------      
+
     template <typename Op, typename... Args>
-    void dispatch_unary_inplace(TensorImpl& in, Args&&... args);
+    TensorImpl dispatch_binary(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_input(&lhs);
+        iter.add_input(&rhs);
+        iter.build<Op>();
 
-    template <typename Op, typename... Args>
-    TensorImpl dispatch_unary_casting(TensorImpl& in, ScalarType dtype, Args&&... args);
-
-
-    // ------------------------------------------------ BINARY DISPATCHERS ------------------------------------------------
-
-    template <typename Op, typename... Args>
-    TensorImpl dispatch_binary(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+        return *iter.get_outputs()[0];
+    }
 
     template <typename BackwardOp, typename... Args>
-    std::pair<TensorImpl, TensorImpl> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
+    ::std::pair<TensorImpl, TensorImpl> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        TensorIterator iter;
+        // iter.add_input(output.autograd_meta_.grad_);    //Upstream grad
+        iter.add_input(&lhs);
+        iter.add_input(&rhs);
+        // iter.add_output(lhs.autograd_meta_.grad_);
+        // iter.add_output(rhs.autograd_meta_.grad_);
+        iter.build<BackwardOp>();
+
+        dispatch_impl_<BackwardOp>(iter, std::forward<Args>(args)...);
+        return {TensorImpl{}, TensorImpl{}};    //placeholder
+    }
 
 
-    // ------------------------------------------------ TERNARY DISPATCHERS ------------------------------------------------
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                 TERNARY DISPATCHERS
+    // -------------------------------------------------------------------------------------------------------------  
 
     template <typename Op, typename... Args>
-    TensorImpl dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args);
-
-
-    // ------------------------------------------------ COMPARISON DISPATCHERS ------------------------------------------------
-
-    template <typename Op, typename... Args>
-    TensorImpl dispatch_comparison(TensorImpl& lhs, TensorImpl& rhs, Args&&... args);
+    TensorImpl dispatch_ternary(TensorImpl& op_a, TensorImpl& op_b, TensorImpl& op_c, Args&&... args)
+    {
+        return TensorImpl{}; // placeholder
+    }
     
 
-    // ------------------------------------------------ REDUCTION DISPATCHERS ------------------------------------------------
-    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                COMPARISON DISPATCHERS
+    // ------------------------------------------------------------------------------------------------------------- 
+
     template <typename Op, typename... Args>
-    TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args);
+    TensorImpl dispatch_comparison(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        return TensorImpl{}; // placeholder
+    }
 
-    // TODO: inplace version required?
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                 REDUCTION DISPATCHERS
+    // ------------------------------------------------------------------------------------------------------------- 
 
-    // TODO: Matmul dispatcher required
+    template <typename Op, typename... Args>
+    TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args)
+    {
+        return TensorImpl{}; // placeholder
+    }
 
 } // namespace tensor::ops

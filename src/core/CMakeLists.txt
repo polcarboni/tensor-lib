@@ -3,7 +3,6 @@ add_library(tensor_core STATIC
     Storage.cpp
     TensorImpl.cpp
     TensorIterator.cpp
-    Dispatchers.cpp
     Tensor.cpp)
 
 target_include_directories(tensor_core PUBLIC
