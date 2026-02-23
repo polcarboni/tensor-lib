@@ -54,4 +54,6 @@ namespace tensor::ops
     INSTANTIATE_FILL_OPS(int64_t)
     INSTANTIATE_FILL_OPS(bool)
 
+    #undef INSTANTIATE_FILL_OPS
+
 } // namespace tensor::ops

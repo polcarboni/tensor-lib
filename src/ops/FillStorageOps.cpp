@@ -66,4 +66,6 @@ namespace tensor::ops
     INSTANTIATE_FILL_OPS_CPU(int64_t)
     INSTANTIATE_FILL_OPS_CPU(bool)
 
+    #undef INSTANTIATE_FILL_OPS_CPU
+
 } // namespace tensor::ops
