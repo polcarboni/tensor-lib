@@ -405,9 +405,20 @@ namespace tensor
     TensorIterator::TensorIterator(TensorIterator&&) = default;
     TensorIterator& TensorIterator::operator=(TensorIterator&&) = default;
 
-    bool TensorIterator::get_inplace()         { return inplace_; }
-    void TensorIterator::set_inplace(bool val) { inplace_ = val; }
 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                      GETTERS
+    // ------------------------------------------------------------------------------------------------------------- 
+    
+    std::vector<TensorImpl*> TensorIterator::get_outputs() { return outputs_; }
+    
+    bool TensorIterator::get_inplace()              { return inplace_; }
+    ScalarType TensorIterator::get_common_dtype()   { return common_dtype_; }
+    Device TensorIterator::get_common_device()      { return common_device_; }
+    bool TensorIterator::get_common_is_contiguous() { return common_is_contiguous_; }
+    bool TensorIterator::get_common_requires_grad() { return common_requires_grad_; }
+    
+    void TensorIterator::set_inplace(bool val) { inplace_ = val; }
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                                DISPATCHER INTERFACES
@@ -441,7 +452,12 @@ namespace tensor
             // UNARY CASTING OPERATION: uses the provided cast_type argument
             // TODO: add check also on the operation template (if std::is_base_of_v<CastOp, Op>)
             if (cast_type != ScalarType::EMPTY) {
-                if(shape.empty()) {
+
+                if (inputs_.size() > 1) {
+                    throw std::runtime_error("build(): casting operations only support 1 input");
+                }
+
+                if(inputs_[0]->get_shape().empty()) {
                     throw std::runtime_error("Cannot cast an empty tensor");
                 }
                 common_dtype_ = cast_type;
@@ -492,12 +508,6 @@ namespace tensor
         broadcasted_strides_ = compute_broadcast_strides_<Op>();
     }
 
-    
-    std::vector<TensorImpl*> TensorIterator::get_outputs()
-    {
-        return outputs_;
-    }
-
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                                KERNEL INTERFACES
@@ -524,7 +534,7 @@ namespace tensor
 
     const void* TensorIterator::output_data(int idx) const
     {
-        // placeholder
+        return nullptr; // placeholder
     }
     
     void* TensorIterator::output_grad_data(int idx)
@@ -545,7 +555,7 @@ namespace tensor
     }
 
     template <typename T>
-    T* TensorIterator::output_ptr(int idx = 0)
+    T* TensorIterator::output_ptr(int idx)
     {
         return static_cast<T*>(output_data(idx));
     }
