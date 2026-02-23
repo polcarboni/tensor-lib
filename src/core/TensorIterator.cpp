@@ -1,5 +1,6 @@
 #include "core/TensorImpl.hpp"
 #include "core/TensorIterator.hpp"
+#include "ops/OpsRegistry.hpp"
 #include <algorithm>
 
 /**
@@ -564,8 +565,6 @@ namespace tensor
 
     /* Explicit instantiations */
 
-    #include "ops/OpsRegistry.hpp"
-
     #define INSTANTIATE_T(T)                                \
         template T* TensorIterator::input_ptr<T>(int);      \
         template T* TensorIterator::output_ptr<T>(int);
@@ -577,8 +576,9 @@ namespace tensor
     INSTANTIATE_T(bool)
 
     #define INSTANTIATE_OP(Op)                                  \
-    template void TensorIterator::build<Op>(const ScalarType);  \
-    INSTANTIATE_OP(FOR_EACH_OP(Op));
+        template void TensorIterator::build<::tensor::ops::Op>(const ScalarType);  
+
+    FOR_EACH_OP(INSTANTIATE_OP)
     
     #undef INSTANTIATE_T
     #undef INSTANTIATE_OP
