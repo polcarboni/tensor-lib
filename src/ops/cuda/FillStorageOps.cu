@@ -17,16 +17,16 @@ namespace tensor::ops
     }
     
     template <typename T>
-    __global__ void FillArangeKernel(T* data, size_t n, T start, T step);
+    __global__ void FillArangeKernel(T* data, size_t n, T start, T step) { }
 
     template <typename T>
-    __global__ void FillLinspaceKernel(T* data, size_t n, T start, T end);
+    __global__ void FillLinspaceKernel(T* data, size_t n, T start, T end) { }
 
     template <typename T>
-    __global__ void FillRandomUniformKernel(T* data, size_t n, T low, T high, uint64_t seed);
+    __global__ void FillRandomUniformKernel(T* data, size_t n, T low, T high, uint64_t seed) { }
 
     template <typename T>
-    __global__ void FillRandomNormalKernel(T* data, size_t n, T mean, T stddev, uint64_t seed);
+    __global__ void FillRandomNormalKernel(T* data, size_t n, T mean, T stddev, uint64_t seed) { }
     
 
     void FillConst::cuda(TensorIterator& iter, cudaStream_t stream, double value)
@@ -47,33 +47,30 @@ namespace tensor::ops
         });
     }
 
-    template <typename T>
-    void FillArange::cuda(TensorIterator& iter, cudaStream_t stream, T start, T step) { }
+    void FillArange::cuda(TensorIterator& iter, cudaStream_t stream, double start, double step) { }
 
-    template <typename T>
-    void FillLinspace::cuda(TensorIterator& iter, cudaStream_t stream, T start, T step) { }
+    void FillLinspace::cuda(TensorIterator& iter, cudaStream_t stream, double start, double step) { }
 
-    template <typename T>
-    void FillRandomUniform::cuda(TensorIterator& iter, cudaStream_t stream, T low, T high, uint64_t seed) {}
+    void FillRandomUniform::cuda(TensorIterator& iter, cudaStream_t stream, double low, double high, uint64_t seed) {}
 
-    template <typename T>
-    void FillRandomNormal::cuda(TensorIterator& iter, cudaStream_t stream, T mean, T stddev, uint64_t seed) { }
+    void FillRandomNormal::cuda(TensorIterator& iter, cudaStream_t stream, double mean, double stddev, uint64_t seed) { }
 
 
     // Explicit instantiations
 
-    #define INSTANTIATE_FILL_OPS(T) \
-        template void FillArange::cuda<T>(TensorIterator&, cudaStream_t, T, T); \
-        template void FillLinspace::cuda<T>(TensorIterator&, cudaStream_t, T, T); \
-        template void FillRandomUniform::cuda<T>(TensorIterator&, cudaStream_t, T, T, uint64_t); \
-        template void FillRandomNormal::cuda<T>(TensorIterator&, cudaStream_t, T, T, uint64_t);
+    #define INSTANTIATE_KERNELS(T) \
+        template __global__ void FillConstKernel<T>(T*, size_t, T); \
+        template __global__ void FillArangeKernel<T>(T*, size_t, T, T); \
+        template __global__ void FillLinspaceKernel<T>(T*, size_t, T, T); \
+        template __global__ void FillRandomUniformKernel<T>(T*, size_t, T, T, uint64_t); \
+        template __global__ void FillRandomNormalKernel<T>(T*, size_t, T, T, uint64_t);
 
-    INSTANTIATE_FILL_OPS(float)
-    INSTANTIATE_FILL_OPS(double)
-    INSTANTIATE_FILL_OPS(int32_t)
-    INSTANTIATE_FILL_OPS(int64_t)
-    INSTANTIATE_FILL_OPS(bool)
+    INSTANTIATE_KERNELS(float)
+    INSTANTIATE_KERNELS(double)
+    INSTANTIATE_KERNELS(int32_t)
+    INSTANTIATE_KERNELS(int64_t)
+    INSTANTIATE_KERNELS(bool)
 
-    #undef INSTANTIATE_FILL_OPS
+    #undef INSTANTIATE_KERNELS
 
 } // namespace tensor::ops
