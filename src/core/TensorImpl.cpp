@@ -260,4 +260,23 @@ namespace tensor {
         // return std::make_shared<TensorImpl>(std::move(result));
     }
 
+    
+
+    /* Explicit instantiations */
+
+    #define INSTANTIATE(T)                                                                              \
+        template TensorImpl::TensorImpl<T>(const std::vector<size_t>&, T, ScalarType, Device, bool);    \
+        template void TensorImpl::fill_const<T>(T);                                                     \
+        template T* TensorImpl::data_ptr<T>();                                                          \
+        template const T* TensorImpl::data_ptr<T>() const;                                              \
+        template T& TensorImpl::operator()<T>(const std::initializer_list<size_t>&);                    
+
+    INSTANTIATE(float)
+    INSTANTIATE(double)
+    INSTANTIATE(int32_t)
+    INSTANTIATE(int64_t)
+    INSTANTIATE(bool)
+
+    #undef INSTANTIATE
+
 } // namespace tensor
