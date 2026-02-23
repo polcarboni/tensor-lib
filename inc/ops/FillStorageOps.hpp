@@ -29,52 +29,52 @@ namespace tensor::ops
 
     struct FillConst : FillOpBase {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T value);
+        static void cpu(TensorIterator& iter, T value);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream = nullptr, T value = T{0});
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, T value = T{0});
     };
     
     struct FillBuffer : FillOpBase  {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, const T* src);
+        static void cpu(TensorIterator& iter, const T* src);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream, const T* src);
+        static void cuda(TensorIterator& iter, cudaStream_t stream, const T* src);
     };
 
     // TODO-fix: one of these two have an error in the declaration (cannot be both with start and step,
     // one of them must use start and end).
     struct FillArange : FillOpBase  {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T start, T step);
+        static void cpu(TensorIterator& iter, T start, T step);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream, T start, T step);
+        static void cuda(TensorIterator& iter, cudaStream_t stream, T start, T step);
     };
 
     struct FillLinspace : FillOpBase  {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T start, T step);
+        static void cpu(TensorIterator& iter, T start, T step);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream = nullptr, T start = T{0}, T step = T{1});
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, T start = T{0}, T step = T{1});
     };
 
     struct FillRandomUniform : FillOpBase  {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T low = T{0}, T high = T{1}, uint64_t seed = 0);
+        static void cpu(TensorIterator& iter, T low = T{0}, T high = T{1}, uint64_t seed = 0);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream = nullptr, T low = T{0}, T high = T{1}, uint64_t seed = 0);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, T low = T{0}, T high = T{1}, uint64_t seed = 0);
     };
 
     struct FillRandomNormal : FillOpBase  {
         template <typename T>
-        static void cpu(tensor::TensorIterator& iter, T mean = T{0}, T stddev = T{1}, uint64_t seed = 0);
+        static void cpu(TensorIterator& iter, T mean = T{0}, T stddev = T{1}, uint64_t seed = 0);
         
         template <typename T>
-        static void cuda(tensor::TensorIterator& iter, cudaStream_t stream = nullptr, T mean = T{0}, T stddev = T{1}, uint64_t seed = 0);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, T mean = T{0}, T stddev = T{1}, uint64_t seed = 0);
     };
 
 } // namespace tensor::ops
