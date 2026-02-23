@@ -1,6 +1,7 @@
-#include "FillStorageOps.hpp"
-#include "TensorImpl.hpp"
+#include "core/TensorImpl.hpp"
+#include "ops/FillStorageOps.hpp"
 #include <cstdint>
+#include <cassert>
 
 
 /**
@@ -22,14 +23,14 @@ namespace tensor::ops
     template <typename T>
     void FillConst::cpu(TensorIterator& iter, T value)
     {
-        assert(get_scalar_type<T>() == iter->get_common_dtype());
+        assert(get_scalar_type<T>() == iter.get_common_dtype());
 
         T* output = iter.output_ptr<T>(0);
 
-        auto& outputs = iter.get_outputs();
-        size_t total_size = outputs[0]->get_total_size();
+        // auto& outputs = iter.get_outputs();
+        size_t total_size = iter.get_outputs()[0]->get_total_size();
 
-        if (outputs[0]->get_contiguous()) {
+        if (iter.get_outputs()[0]->get_contiguous()) {
             // Fast path for contiguous tensor
             std::fill(output, output + total_size, value);
         } else {
@@ -63,7 +64,6 @@ namespace tensor::ops
     INSTANTIATE_FILL_OPS_CPU(double)
     INSTANTIATE_FILL_OPS_CPU(int32_t)
     INSTANTIATE_FILL_OPS_CPU(int64_t)
-    INSTANTIATE_FILL_OPS_CPU(int)
     INSTANTIATE_FILL_OPS_CPU(bool)
 
 } // namespace tensor::ops
