@@ -227,7 +227,7 @@ namespace tensor
                 // Compare/accumulate input dimensions with broadcasting rules
                 for (size_t i = 0; i < input_rank; ++i) {
                     size_t input_dim = input_shape[i];
-                    size_t& output_dim = out_shape[i + pad_offset];
+                    size_t& output_dim = output_shape[i + pad_offset];
 
                     if (input_dim == 1) {
                         continue;
@@ -306,35 +306,74 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_elementwise_()
     {
-        std::vector<std::vector<size_t>> strides;
-        strides.resize(inputs_.size() + outputs_.size());
+
+        /**
+         * TODOFIX: this currently does not use the input tensors strides data member.
+         *          these should be directly forwarded to the output if there is no
+         *          broadcasting involved (same shapes). 
+         * 
+         *          Not 100% sure. Does this function manage noncontiguous? 
+         */
+
+        std::vector<std::vector<size_t>> all_strides;
+        all_strides.reserve(inputs_.size() + outputs_.size());
+
+
+        // ============================ FORWARD BROADCASTING ============================
 
         if constexpr (Op::get_direction() == Direction::FORWARD) {
             
-            // Fast paths. If both are contiguous I can just forward the operand strides values.
-            // This is only true if no broadcast is computed
-            if (common_is_contiguous_ && !is_broadcasted_)
-            {
-                for (auto& input : inputs_) {
-                    strides.push_back(input->get_strides());
+            const std::vector<size_t>& target_shape = output_shapes_[0];
+            size_t max_rank = target_shape.size();
+
+
+            // ---------------------- input strides ------------------------
+            
+            for (const auto& input : inputs_) {
+                const auto& actual_shape = input->get_shape();
+                const auto& actual_strides = input->get_strides();
+                size_t input_rank = actual_shape.size();
+                size_t pad_offset = max_rank - input_rank;
+                
+                std::vector<size_t> broadcasted_strides(max_rank, 0);
+                
+                for (size_t i = 0; i < input_rank; ++i) {
+                    if (actual_shape[i] != 1) {
+                        broadcasted_strides[i + pad_offset] = actual_strides[i];
+                    } else {
+                        broadcasted_strides[i + pad_offset] = 0;
+                    }
                 }
 
-                for (auto& output : outputs_) {
-                    strides.push_back(output->get_strides());
-                }
-
-                return strides;
+                all_strides.push_back(std::move(broadcasted_strides));
             }
+            
 
-            // TODO: What if the operands are not contiguous but they have the same shape?
-            throw std::runtime_error("compute_strides_elementwise_(): general case is not yet implemented");
+            // ---------------------- output strides ------------------------
+            
+            for (size_t i = 0; i < outputs_.size(); ++i) {
+                std::vector<size_t> out_strides(max_rank);
+                size_t current_stride = 1;
 
+                for (int d = static_cast<int>(max_rank) - 1; d >= 0; --d) {
+                    out_strides[d] = current_stride;
+                    current_stride *= target_shape[d];
+                }
+                
+                all_strides.push_back(std::move(out_strides));
+            } 
         }
 
-        else if (Op::get_direction() == Direction::BACKWARD) {
+
+        // ============================ BACKWARD BROADCASTING ============================
+
+        else if constexpr (Op::get_direction() == Direction::BACKWARD) {
             throw std::runtime_error("TensorIterator: backward elementwise not implemented");
         }
+
+        return all_strides;
     }
+
 
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_()
