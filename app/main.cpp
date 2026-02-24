@@ -8,10 +8,10 @@
 int main()
 {
 
+
     // =====================================================================================================
     //                                              Types Testing
     // =====================================================================================================
-    
     
     auto t1 = tensor::ScalarType::Float32;
     auto t2 = tensor::ScalarType::Float64;
@@ -69,15 +69,30 @@ int main()
         (i < 7) ?  std::cout << ", " : std::cout << "]" <<std::endl;
     }
 
+
     // =====================================================================================================
     //                                            TensorImpl
     // =====================================================================================================
 
     auto tensor_impl_a = tensor::TensorImpl();
-    auto tensor_impl_b = tensor::TensorImpl({2,2}, 3.0f);
-
+    auto tensor_impl_b = tensor::TensorImpl({2,2}, 3.214f);
+    
     std::cout << tensor_impl_a << std::endl;
     std::cout << tensor_impl_b << std::endl;
+
+    auto impl_c = tensor::TensorImpl({3,3,3}, 4.321, tensor::ScalarType::Int32);
+    auto impl_d = tensor::TensorImpl({3,3,3,3}, 4, tensor::ScalarType::Int32);
+
+    std::cout << impl_c << std::endl;
+    std::cout << impl_d << std::endl;
+
+    // Tensor Impl on CUDA
+
+    auto impl_cuda = tensor::TensorImpl({2,2}, 2.4, tensor::ScalarType::Float32, {tensor::DeviceType::CUDA, 0});
+
+    std::cout << "\ntest\n";
+
+    std::cout << impl_cuda << std::endl;
 
     return 0;
 }
