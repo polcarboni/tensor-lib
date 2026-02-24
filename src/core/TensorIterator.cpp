@@ -164,80 +164,85 @@ namespace tensor
         std::vector<std::vector<size_t>> computed_shapes;
         computed_shapes.resize(outputs_.size());
 
+        // Check if input tensors are empty (throw if an input operand is empty)
+        for (const auto& input : inputs_) {
+            const auto& shape = input->get_shape();
+            for (auto dim : shape) {
+                if (dim == 0) {
+                    throw std::runtime_error("broadcast_shapes_elementwise: provided empty tensor");
+                }
+            }
+        }
+
+        is_broadcasted_ = false;
+
         // Forward operations havea single output so looping over outputs_ is not required
+        
+        // ============================ FORWARD BROADCASTING ============================
+
         if (Op::get_direction() == Direction::FORWARD) {
 
-            // FAST PATH 1: single operand. Forward the shape to output.
+            // ---------------------- fast path 1: single operand ----------------------
+            
             if (inputs_.size() == 1) {
                 computed_shapes[0] = inputs_[0]->get_shape();
                 return computed_shapes;
-
-            } else {
-                std::vector<size_t> temp{};
                 
-                // Check if the operands have all the same shape.
-                for (auto& input : inputs_) {
-                    if(!temp.empty() && temp != input->get_shape()) {
-                        is_broadcasted_ = true;
-                        break;
-                    }
-                    temp = input->get_shape();
+            }
+            
+            // ---------------------- fast path 2: same shapes ----------------------
+            
+            const auto& first_shape = inputs_[0]->get_shape();
+            for (size_t i = 1; i < inputs_.size(); ++i) {
+                if (inputs_[i]->get_shape() != first_shape) {
+                    is_broadcasted_ = true;
+                    break;
                 }
-
-                // FAST PATH 2: if all inputs have same shape, forward shape to output.
-                if (!is_broadcasted_)
-                {
-                    computed_shapes[0] = temp;
-                    return computed_shapes;
-                }
+            }
+            
+            if (!is_broadcasted_)
+            {
+                computed_shapes[0] = first_shape;
+                return computed_shapes;
             }
         
-            throw std::runtime_error("Acutal broadcasting is not implemented yet"); 
 
-            /* IMPLEMENTATION OF THE GENERAL CASE (CONSIDER ONLY FORWARD 1 OUTPUT) */
-            /**
-             * Different sized shapes: check if it can be left padded with ones. 
-             * There are probably some weird cases of empty tensors that will break this
-             * ....
-             * 
-             * If one of the tensor has a 0 dimension this should throw. This has to be assessed here but where in the pipeline?
-             * Probably at the beginning (common to forward and backward) but looping dimensions should also achieve other stuff in the mean time.
-             * 
-             * TODO: fix the following incomplete implementation:
-             *       Should iterate from the rightmost value of each input shape, check for all inputs if the value is the same, different from 0
-             *       or they are all 1s except for a single value.
-             *       (This while considering a single output since it is the forward version). 
-             */
-
-            /*
-            size_t max_ndim = 0;
+            // ------------------------- broadcasting logic -------------------------
+            
+            size_t max_rank = 0;
             for (auto& input : inputs_) {
-                max_ndim = std::max(max_ndim, input->get_shape().size());
+                max_rank = std::max(max_rank, input->get_shape().size());
             }
 
+            // Initialize the output shape with 1s
+            std::vector<size_t> output_shape(max_rank, 1);
 
-            for (size_t i = 0; i < padded_sizes.size(); ++i) {
-                for (auto& input : inputs_) {
-                    input->get_shape()[input->get_shape().size() - 1 - i];
-                }
-            }
-
-
-            // Left padding with ones
+            // Iterate over inputs dimensions to update output_shape
             for (auto& input : inputs_) {
                 
                 auto input_shape = input->get_shape();
-                auto input_shape_size = input_shape.size(); 
-                size_t pad_offset = max_ndim - input_shape_size;
-                
-                if (pad_offset >= 1) {
-                    std::vector<size_t> padded_size = input_shape.insert(input_shape.begin(), 1);
-                } else {
-                    padded_sizes.push_back(input->get_shape().size())
+                auto input_rank = input_shape.size(); 
+                size_t pad_offset = max_rank - input_rank;
+
+                // Compare/accumulate input dimensions with broadcasting rules
+                for (size_t i = 0; i < input_rank; ++i) {
+                    size_t input_dim = input_shape[i];
+                    size_t& output_dim = out_shape[i + pad_offset];
+
+                    if (input_dim == 1) {
+                        continue;
+                    } else if (output_dim == 1) {
+                        output_dim = input_dim;
+                    } else if (output_dim != input_dim) {
+                        throw std::runtime_error("Incompatible shapes for broadcasting");
+                    }
                 }
             }
-            */
+
+            computed_shapes[0] = output_shape;
         }
+
+        // ============================ BACKWARD BROADCASTING ============================
 
         else if (Op::get_direction() == Direction::BACKWARD) {
             throw std::runtime_error("backward elementwise shape broadcasting not implemented");
@@ -245,6 +250,8 @@ namespace tensor
 
         return computed_shapes;
     }  
+
+
 
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_reduction_()
