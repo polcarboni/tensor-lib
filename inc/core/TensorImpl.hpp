@@ -8,6 +8,10 @@
 #include <iomanip>
 #include <functional>
 
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 namespace tensor
 {
 
@@ -169,7 +173,7 @@ namespace tensor
         std::ostringstream oss;
         oss << std::setprecision(4) << std::fixed;
 
-        const std::string prefix = "Tensor (";
+        const std::string prefix = "Tensor=(";
         const int prefix_len = static_cast<int>(prefix.size());
         oss << prefix;
 
@@ -178,6 +182,28 @@ namespace tensor
             oss << "[])";
             return oss.str();
         }
+
+        // ----------------------- CUDA support logic -----------------------
+
+        std::vector<char> host_buffer;
+        const void* data_ptr = nullptr;
+
+        if (tensor.device_.type == DeviceType::CUDA) {
+            size_t bytes = tensor.total_size_ * element_size(tensor.dtype_);
+            host_buffer.resize(bytes);
+
+            cudaError_t err = cudaMemcpy(host_buffer.data(), tensor.storage_->data(), bytes, cudaMemcpyDeviceToHost);
+
+            if (err != cudaSuccess) {
+                throw std::runtime_error(std::string("to_string: CUDA memcpy failed: ") + cudaGetErrorString(err));
+            }
+            data_ptr = host_buffer.data();
+        
+        } else {
+            data_ptr = tensor.storage_->data();
+        }
+
+
 
         // Recursive lambda function
         std::function<void(size_t dim, std::vector<size_t>& indices, int indent)> print_dim;
@@ -188,7 +214,7 @@ namespace tensor
                 size_t physical = tensor.get_physical_offset(indices);
 
                 DISPATCH_ALL_TYPES(tensor.dtype_, "to_string", [&] {
-                    oss << *reinterpret_cast<const scalar_t*>(static_cast<const char*>(tensor.storage_->data()) + physical * element_size(tensor.dtype_));
+                    oss << *reinterpret_cast<const scalar_t*>(static_cast<const char*>(data_ptr) + physical * element_size(tensor.dtype_));
                 });
 
                 return;
