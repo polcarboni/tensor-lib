@@ -49,6 +49,9 @@ namespace tensor::grad
     /**
      * This node is created when the forward operation Add is used with Tensors with requires_grad_ = true.
      * Apply will call the backward version of the function when dependency_count_ = 0;
+     * 
+     * If dependent count > 0 the execution is suppressed. But don't worry, the count still not being 0
+     * means that other dependency will eventually call this again.
      */
     class AddBackward : public Node {
         std::vector<TensorImpl> apply(std::vector<TensorImpl>&& grads) override;
