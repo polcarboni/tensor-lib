@@ -1,4 +1,5 @@
 #include "core/TensorImpl.hpp"
+#include "core/TensorIterator.hpp"
 #include "ops/FillStorageOps.hpp"
 #include <cstdint>
 #include <cassert>
@@ -34,6 +35,10 @@ namespace tensor::ops
                 
             } else {
                 // Useful for cases of partial ownership.
+                
+                // This should however only use the data_ptr (non contiguous cases are handled during iterator construction)
+                // the only difference is probably that is not possible to use std::fill the same way.
+                
                 throw std::runtime_error("FILLCONSTOP FOR NON CONTIGUOUS STILL NOT IMPLEMENTED");
             }
         });
