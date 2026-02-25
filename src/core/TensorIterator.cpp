@@ -503,6 +503,8 @@ namespace tensor
     bool TensorIterator::get_common_requires_grad() { return common_requires_grad_; }
     
     void TensorIterator::set_inplace(bool val) { inplace_ = val; }
+    void TensorIterator::set_reduction_axes(const std::vector<size_t>& axes) { reduction_axes_ = axes; }
+    void TensorIterator::set_keepdims(bool keepdims) { keepdims_ = keepdims; }
 
 
 
