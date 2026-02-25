@@ -1,7 +1,8 @@
+#include "core/TensorImpl.hpp"
 #include "autograd/Node.hpp"
 #include "autograd/Edge.hpp"
 
-namespace tensor
+namespace tensor::grad
 {
 
     Node::Node() 
@@ -14,9 +15,9 @@ namespace tensor
         // None
     }
 
-    std::vector<Tensor> Node::apply(std::vector<Tensor>&& grads)
+    std::vector<TensorImpl> Node::apply(std::vector<TensorImpl>&& grads)
     {
-        auto a = std::vector<Tensor> {};
+        auto a = std::vector<TensorImpl> {};
         return a;
     }
 
@@ -48,4 +49,4 @@ namespace tensor
         return a;
     }
     
-} // namespace tensor
+} // namespace tensor::grad

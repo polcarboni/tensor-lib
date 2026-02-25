@@ -1,18 +1,19 @@
+#include "core/TensorImpl.hpp"
 #include "autograd/AutogradEngine.hpp"
 
-namespace tensor
+namespace tensor::grad
 {
-    void AutogradEngine::execute_graph(std::shared_ptr<Node> root_node, Tensor initial_grad)
+    void AutogradEngine::execute_graph(std::shared_ptr<Node> root_node, TensorImpl initial_grad)
     {
         // None
     }
 
-    void AutogradEngine::backward(const std::vector<Tensor>& roots,
-                          const std::vector<Tensor>& grad_outputs,
+    void AutogradEngine::backward(const std::vector<TensorImpl>& roots,
+                          const std::vector<TensorImpl>& grad_outputs,
                           bool retain_graph,
                           bool create_graph)
     {
         // None
     }
 
-} // namespace tensor
+} // namespace tensor::grad
