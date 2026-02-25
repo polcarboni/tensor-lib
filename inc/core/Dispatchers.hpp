@@ -149,9 +149,34 @@ namespace tensor::ops
     // ------------------------------------------------------------------------------------------------------------- 
 
     template <typename Op, typename... Args>
-    TensorImpl dispatch_reduction(TensorImpl& tensor, Args&&... args)
+    TensorImpl dispatch_reduction(TensorImpl& tensor, const std::vector<size_t>& axes, bool keepdims, Args&&... args)
     {
-        return TensorImpl{}; // placeholder
+        TensorIterator iter;
+        iter.add_input(&tensor);
+        iter.set_reduction_axes(axes);
+        iter.set_keepdims(keepdims);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+        
+        return *iter.get_outputs()[0];
     }
+
+    // Inplace reduction to a provided output tensor
+    template <typename Op, typename... Args>
+    void dispatch_reduction_inplace(TensorImpl& out, TensorImpl& in, const std::vector<size_t>& axes, bool keepdims, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_input(&in);
+        iter.add_output(&out);
+        iter.set_reduction_axes(axes);
+        iter.set_keepdims(keepdims);
+        
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
+
+
 
 } // namespace tensor::ops
