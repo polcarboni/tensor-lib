@@ -1,7 +1,7 @@
 #include "autograd/Edge.hpp"
 #include "autograd/Node.hpp"
 
-namespace tensor
+namespace tensor::grad
 {
     Edge::Edge() 
     {
@@ -18,4 +18,4 @@ namespace tensor
         return false;
     }
     
-} // namespace tensor
+} // namespace tensor::grad

@@ -88,7 +88,7 @@ namespace tensor {
     {
         if (other.autograd_meta_)
             // TODO: might not work (check the AutograMeta struct) 
-            autograd_meta_ = std::make_unique<AutogradMeta>(*other.autograd_meta_);
+            autograd_meta_ = std::make_unique<grad::AutogradMeta>(*other.autograd_meta_);
     }
 
     TensorImpl& TensorImpl::operator=(const TensorImpl& other)
@@ -122,7 +122,7 @@ namespace tensor {
         }
 
         if (requires_grad_) {
-            autograd_meta_ = std::make_unique<AutogradMeta>();
+            autograd_meta_ = std::make_unique<grad::AutogradMeta>();
         }
 
         if (src) {
