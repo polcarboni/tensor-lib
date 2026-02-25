@@ -1,8 +1,3 @@
-# target_sources(tensor_lib PRIVATE
-#                Node.cpp
-#                Edge.cpp
-#                Autogradengine.cpp)
-
 add_library(tensor_autograd STATIC
                Node.cpp
                Edge.cpp
