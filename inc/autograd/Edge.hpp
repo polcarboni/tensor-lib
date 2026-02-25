@@ -1,9 +1,9 @@
 #pragma once
-#include "Node.hpp"
+// #include "Node.hpp"
 #include <memory>
 
-namespace tensor {
-
+namespace tensor::grad
+{
     class Node;
     
     struct Edge {
@@ -16,4 +16,4 @@ namespace tensor {
         bool is_valid() const;
     };
     
-} // namespace tensor
+} // namespace tensor::grad
