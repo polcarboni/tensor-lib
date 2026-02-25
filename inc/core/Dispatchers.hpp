@@ -171,6 +171,7 @@ namespace tensor::ops
         iter.add_output(&out);
         iter.set_reduction_axes(axes);
         iter.set_keepdims(keepdims);
+        iter.set_inplace(true);
         
         iter.build<Op>();
 
