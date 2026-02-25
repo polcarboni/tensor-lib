@@ -36,6 +36,26 @@ namespace tensor
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
+        // -------- Reduction operations data members -------- 
+
+        std::vector<size_t> reduction_axes_;
+        bool keepdims_ = false;
+
+
+        // ---------- Matmul operations data members ----------
+
+        size_t m_ = 0;
+        size_t n_ = 0;
+        size_t k_ = 0;
+
+        bool trans_a_ = false;
+        bool trans_b_ = false;
+
+        int64_t batch_stride_a_ = 0;
+        int64_t batch_stride_b_ = 0;
+        int64_t batch_stride_out_ = 0;
+
+
         // -------------------------------------------------- METADATA VALIDATION --------------------------------------------------
 
         /**
@@ -135,7 +155,7 @@ namespace tensor
 
 
         // -------------------------------------------------- GETTERS --------------------------------------------------
-
+        
         std::vector<TensorImpl*> get_outputs();
         
         bool get_inplace();
