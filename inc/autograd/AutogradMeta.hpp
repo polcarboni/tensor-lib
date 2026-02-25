@@ -1,15 +1,12 @@
 #pragma once
-// #include "core/Tensor.hpp"
-// #include "Node.hpp"
+#include "core/TensorImpl.hpp"
+#include "Node.hpp"
 #include <memory>
 #include <cstdint>
 
 namespace tensor::grad
 {
     // ------------------------------ AUTOGRAD META STRUCT  --------------------------------
-    
-    class ::tensor::TensorImpl;
-    class Node;
     
     struct AutogradMeta {
         std::shared_ptr<TensorImpl> grad_ = nullptr;    /* Accumulated gradient */ 
