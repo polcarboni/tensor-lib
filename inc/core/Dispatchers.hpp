@@ -34,7 +34,7 @@ namespace tensor::ops
             }
     }
 
-    
+
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  UNARY DISPATCHERS
     // -------------------------------------------------------------------------------------------------------------  
@@ -90,6 +90,19 @@ namespace tensor::ops
         return *iter.get_outputs()[0];
     }
 
+    template <typename Op, typename... Args>
+    void dispatch_binary_inplace(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_output(&lhs);
+        iter.add_input(&lhs);
+        iter.add_input(&rhs);
+        iter.set_inplace(true);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
+
     template <typename BackwardOp, typename... Args>
     ::std::pair<TensorImpl, TensorImpl> dispatch_binary_backward(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
     {
@@ -105,6 +118,41 @@ namespace tensor::ops
         return {TensorImpl{}, TensorImpl{}};    //placeholder
     }
 
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                 SCALAR DISPATCHERS
+    // -------------------------------------------------------------------------------------------------------------  
+
+    template <typename Op, typename... Args>
+    TensorImpl dispatch_scalar(TensorImpl& tensor, double scalar, Args&&... args)
+    {
+        auto scalar_tensor = TensorImpl({}, scalar, tensor.get_dtype(), tensor.get_device(), tensor.requires_grad());
+        
+        TensorIterator iter;
+        iter.add_input(&tensor);
+        iter.add_input(&scalar_tensor);
+        iter.set_scalar(true);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+        return *iter.get_outputs()[0];
+    }
+
+    template <typename Op, typename... Args>
+    void dispatch_scalar_inplace(TensorImpl& tensor, double scalar, Args&&... args)
+    {
+        auto scalar_tensor = TensorImpl({}, scalar, tensor.get_dtype(), tensor.get_device(), tensor.requires_grad());
+
+        TensorIterator iter;
+        iter.add_output(&tensor);
+        iter.add_input(&tensor);
+        iter.add_input(&scalar_tensor);
+        iter.set_inplace(true);
+        iter.set_scalar(true);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                                 TERNARY DISPATCHERS
@@ -139,7 +187,7 @@ namespace tensor::ops
     {
         TensorIterator iter;
         iter.add_input(&tensor);
-        iter.set_reduction_axes(atd::move(axes));
+        iter.set_reduction_axes(std::move(axes));
         iter.set_keepdims(keepdims);
         iter.build<Op>();
 
