@@ -34,22 +34,6 @@ namespace tensor::ops
             }
     }
 
-    // template <typename Op, typename... Args>
-    // TensorImpl dispatch_nullary(Device device, ScalarType dtype, std::vector<size_t>& shape, Args... args)
-    // {
-    //     TensorIterator iter;
-    //     iter.build<Op>(shape);
-    //     dispatch_impl_<Op>(iter, args...);
-
-    //     return iter.get_output();
-    // }
-
-
-    /**
-     * TODO: check the correct use of return functions. return_output could be instead return_outputs[0] since
-     *       TensorIterators generally suppots multiple output functions. A conveniency function for forward
-     *       operations might not be worth the use.
-     */
     
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  UNARY DISPATCHERS
