@@ -12,7 +12,7 @@ namespace tensor
 
     /* Iterator types classes */
 
-    enum class IterationKind { ELEMENT_WISE, REDUCTION, MATMUL, SCALAR, COPY };
+    enum class IterationKind { ELEMENT_WISE, REDUCTION, MATMUL, COPY };
     enum class Direction { FORWARD, BACKWARD };
 
     class TensorIterator {
@@ -109,9 +109,6 @@ namespace tensor
         
         template <typename Op>
         std::vector<std::vector<size_t>> broadcast_shapes_matmul_();
-
-        template <typename Op>
-        std::vector<std::vector<size_t>> broadcast_shapes_scalar_();
         
         template <typename Op>
         std::vector<std::vector<size_t>> broadcast_shapes_copy_();
@@ -131,10 +128,7 @@ namespace tensor
         
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_matmul_();
-        
-        template <typename Op>
-        std::vector<std::vector<size_t>> compute_strides_scalar_();
-        
+
         template <typename Op>
         std::vector<std::vector<size_t>> compute_strides_copy_();
 

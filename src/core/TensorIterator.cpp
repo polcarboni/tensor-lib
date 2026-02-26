@@ -144,7 +144,6 @@ namespace tensor
         if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  return broadcast_shapes_elementwise_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     return broadcast_shapes_reduction_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        return broadcast_shapes_matmul_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::SCALAR)        return broadcast_shapes_scalar_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::COPY)          return broadcast_shapes_copy_<Op>();
 
         // TODO: if(outputs_): compare the computed output shapes to the previous one.
@@ -172,24 +171,6 @@ namespace tensor
         std::vector<std::vector<size_t>> computed_shapes;
         computed_shapes.resize(outputs_.size());
 
-        /**
-         * TODO: fix, empty shape can be a tensor, maybe add condition based on the operation template type.
-         * Defining a complete separate function might not be very useful (same kernels are used).
-         * 
-         * use the added scalar_member to check for the shapes (this is important since the empty shape would
-         * break the rest of the regular broadcasting logic) 
-         */
-
-        // Check if input tensors are empty (throw if an input operand is empty)
-        for (const auto& input : inputs_) {
-            const auto& shape = input->get_shape();
-            for (auto dim : shape) {
-                if (dim == 0) {
-                    throw std::runtime_error("broadcast_shapes_elementwise: provided empty tensor");
-                }
-            }
-        }
-
         is_broadcasted_ = false;
 
         // Forward operations havea single output so looping over outputs_ is not required
@@ -197,6 +178,23 @@ namespace tensor
         // ============================ FORWARD BROADCASTING ============================
 
         if (Op::get_direction() == Direction::FORWARD) {
+
+            // ------------------------ SCALAR OPERATIONS ------------------------
+            if (scalar_) {
+                is_broadcasted_ = true;
+                computed_shapes[0] = inputs_[0]->get_shape();
+                return computed_shapes;
+            }
+
+            // Check if input tensors are empty (throw if an input operand is empty)
+            for (const auto& input : inputs_) {
+                const auto& shape = input->get_shape();
+                for (auto dim : shape) {
+                    if (dim == 0) {
+                        throw std::runtime_error("broadcast_shapes_elementwise: provided empty tensor");
+                    }
+                }
+            }
 
             // ---------------------- fast path 1: single operand ----------------------
             
@@ -332,12 +330,6 @@ namespace tensor
     {
         return {0}; // placeholder
     }
-
-    template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_scalar_()
-    {
-        return {0}; // placeholder
-    }
     
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_copy_()
@@ -365,7 +357,6 @@ namespace tensor
         if      constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) return compute_strides_elementwise_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    return compute_strides_reduction_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       return compute_strides_matmul_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::SCALAR)       return compute_strides_scalar_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::COPY)         return compute_strides_copy_<Op>();
 
         // TODO: if(outputs_) check strides compatiblity. No hard requirement as in the shape, but at least the 
@@ -400,6 +391,26 @@ namespace tensor
 
         if constexpr (Op::get_direction() == Direction::FORWARD) {
             
+            // ---------------------- SCALAR OPERATIONS ------------------------
+            if (scalar_) {
+                for (const auto& input : inputs_) {
+                    if (input->get_shape().empty()) {
+                        all_strides.push_back({0});
+                    } else {
+                        all_strides.push_back(input->get_strides());
+                    }
+                }
+
+                for (size_t i = 0; i < outputs_.size(); ++i) {
+                    if (outputs_[i]->get_shape().empty()) {
+                        all_strides.push_back({0});
+                    } else {
+                        all_strides.push_back(outputs_[i]->get_strides());
+                    }
+                }
+                return all_strides;
+            }
+
             const std::vector<size_t>& target_shape = output_shapes_[0];
             size_t max_rank = target_shape.size();
 
@@ -471,17 +482,6 @@ namespace tensor
         }
         else if (Op::get_direction() == Direction::BACKWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_matmul_() backward not implemented");
-        }
-    }
-    
-    template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::compute_strides_scalar_()
-    {
-        if (Op::get_direction() == Direction::FORWARD) {
-            throw std::runtime_error("TensorIterator: compute_strides_scalar_() not implemented");
-        }
-        else if (Op::get_direction() == Direction::BACKWARD) {
-            throw std::runtime_error("TensorIterator: compute_strides_scalar_() backward not implemented");
         }
     }
     
