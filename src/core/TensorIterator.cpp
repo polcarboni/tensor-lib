@@ -141,28 +141,50 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_()
     {
-        if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  return broadcast_shapes_elementwise_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     return broadcast_shapes_reduction_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        return broadcast_shapes_matmul_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::COPY)          return broadcast_shapes_copy_<Op>();
+        std::vector<std::vector<size_t>> computed_shapes;
 
-        // TODO: if(outputs_): compare the computed output shapes to the previous one.
-        // If shapes are not the same throw error (do not change the previous existing tensor shape).
+        if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  computed_shapes = broadcast_shapes_elementwise_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     computed_shapes = broadcast_shapes_reduction_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        computed_shapes = broadcast_shapes_matmul_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::COPY)          computed_shapes = broadcast_shapes_copy_<Op>();
 
-        // // Validate the output shape
-        // if (output_) {
-        //     const auto& output_shape = output_->get_shape();
+        
+        // =================================== OUTPUT SHAPES VALIDATION ===================================
+        // TODO: also check the inplace_ data member? remove the data member?
+        
+        if (!outputs_.empty()) {
+            if (computed_shapes.size() != outputs_.size()) {
+                throw std::runtime_error("TensorIterator: number of computed output shapes (" +
+                                            std::to_string(computed_shapes.size()) +
+                                            ") does not match number of outputs (" +
+                                            std::to_string(outputs_.size()) + ")");
+            }
+        }
 
-        //     if (output_shape.size() != result_shape.size()) {
-        //         throw std::runtime_error("...Shape dimensionality mismatch...");
-        //     }
+        for (size_t i = 0; i < outputs_.size(); ++i) {
+            if (outputs_[i] == nullptr) continue;
 
-        //     for (size_t i = 0; i < result_shape.size(); ++i) {
-        //         if (output_shape[i] != result_shape[i]) {
-        //             throw std::runtime_error("...Mismatch in one dimension...");
-        //         }
-        //     }
-        // }
+            const auto& output_shape = outputs_[i]->get_shape();
+            const auto& computed_shape = computed_shapes[i];
+
+            if (output_shape.size() != computed_shape.size()) {
+                throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                         "] dimensionality mismatch: existing rank=" +
+                                         std::to_string(output_shape.size()) +
+                                         ", computed rank=" + std::to_string(computed_shape.size()));
+            }
+
+            for (size_t dim = 0; dim < computed_shape.size(); ++dim) {
+                if(output_shape[dim] != computed_shape[dim]) {
+                    throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                             "] shape mismatch at dim " + std::to_string(dim) +
+                                             ": existing=" + std::to_string(output_shape[dim]) +
+                                             ", computed=" + std::to_string(computed_shape[dim]));
+                }
+            }
+        }
+
+        return computed_shapes;
     }
 
     template <typename Op>
@@ -354,14 +376,52 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_broadcast_strides_()
     {
-        if      constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) return compute_strides_elementwise_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    return compute_strides_reduction_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       return compute_strides_matmul_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::COPY)         return compute_strides_copy_<Op>();
+        std::vector<std::vector<size_t>> computed_strides;
 
-        // TODO: if(outputs_) check strides compatiblity. No hard requirement as in the shape, but at least the 
-        // shape length must be the same. 
-        // If they are compatible the previous strides can be substituted.
+        if      constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) computed_strides = compute_strides_elementwise_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    computed_strides = compute_strides_reduction_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       computed_strides = compute_strides_matmul_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::COPY)         computed_strides = compute_strides_copy_<Op>();
+
+
+        // =================================== OUTPUT STRIDES VALIDATION ===================================
+        
+        if (!outputs_.empty()) {
+            const size_t offset = inputs_.size();
+
+            for (size_t i = 0; i < outputs_.size(); ++i) {
+                if (outputs_[i] == nullptr) continue;
+
+                const size_t stride_idx = offset + i;
+                if (stride_idx >= computed_strides.size()) continue;
+
+                const auto& computed_stride = computed_strides[stride_idx];
+                const auto& output_strides =  outputs_[i]->get_strides();
+
+                // Hard check: computed strides size must match the output shape size
+                if (computed_stride.size() != output_strides.size()) {
+                    throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                             "] stride rank (" + std::to_string(computed_stride.size()) +
+                                             ") does not match shape rank (" +
+                                             std::to_string(output_strides.size()) + ")");
+                }
+                
+                // Soft check: control if computed strides are different from original output strides
+                for (size_t dim = 0; dim < computed_strides.size(); ++dim) {
+                    if (output_strides[dim] != computed_stride[dim]) {
+                        std::cerr << "[TensorIterator] warning: output[" << i
+                                    << "] stride mismatch at dim " << dim
+                                    << ": existing=" << output_strides[dim]
+                                    << ", computed=" << computed_stride[dim]
+                                    << " — substituting computed strides\n";
+                        break;   
+                    }
+                }
+                outputs_[i]->set_strides(computed_stride);
+            }
+        }
+
+        return computed_strides;
     }
 
     /**
