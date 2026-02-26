@@ -37,6 +37,11 @@ namespace tensor
         std::vector<std::vector<size_t>> broadcasted_strides_;
 
 
+        // -------- Scalar operations data members -------- 
+
+        bool scalar_ = false;
+
+
         // -------- Reduction operations data members -------- 
 
         std::optional<std::vector<size_t>> reduction_axes_;
@@ -164,10 +169,12 @@ namespace tensor
         Device get_common_device();
         bool get_common_is_contiguous();
         bool get_common_requires_grad();
+        bool get_scalar();
         
         void set_inplace(bool val);
         void set_reduction_axes(const std::optional<std::vector<size_t>> axes);
         void set_keepdims(bool keepdims);
+        void set_scalar(bool scalar);
 
         // -------------------------------------------------- DISPATCHER INTERFACES -------------------------------------------------- 
 

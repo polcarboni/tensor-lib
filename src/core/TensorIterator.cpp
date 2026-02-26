@@ -172,6 +172,14 @@ namespace tensor
         std::vector<std::vector<size_t>> computed_shapes;
         computed_shapes.resize(outputs_.size());
 
+        /**
+         * TODO: fix, empty shape can be a tensor, maybe add condition based on the operation template type.
+         * Defining a complete separate function might not be very useful (same kernels are used).
+         * 
+         * use the added scalar_member to check for the shapes (this is important since the empty shape would
+         * break the rest of the regular broadcasting logic) 
+         */
+
         // Check if input tensors are empty (throw if an input operand is empty)
         for (const auto& input : inputs_) {
             const auto& shape = input->get_shape();
@@ -286,7 +294,7 @@ namespace tensor
             // Full reduction (no axes provided)
             if (r_axes.empty()) {
                 computed_shapes[0] = std::vector<size_t>{1};
-                return computed_shapes[0];
+                return computed_shapes;
             }
 
             for (auto ax : r_axes) {
@@ -543,10 +551,12 @@ namespace tensor
     Device TensorIterator::get_common_device()      { return common_device_; }
     bool TensorIterator::get_common_is_contiguous() { return common_is_contiguous_; }
     bool TensorIterator::get_common_requires_grad() { return common_requires_grad_; }
+    bool TensorIterator::get_scalar()               { return scalar_; }
     
     void TensorIterator::set_inplace(bool val) { inplace_ = val; }
     void TensorIterator::set_reduction_axes(std::optional<std::vector<size_t>> axes) { reduction_axes_ = std::move(axes); }
     void TensorIterator::set_keepdims(bool keepdims) { keepdims_ = keepdims; }
+    void TensorIterator::set_scalar(bool scalar)     { scalar_ = scalar; }
 
 
 
