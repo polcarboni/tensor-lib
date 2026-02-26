@@ -264,17 +264,59 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_reduction_()
     {
+        std::vector<std::vector<size_t>> computed_shapes;
+        computed_shapes.resize(outputs_.size());
+
+        // ============================ FORWARD BROADCASTING ============================
+
         if (Op::get_direction() == Direction::FORWARD) {
 
+            auto input       = inputs_[0];
+            auto input_shape = input->get_shape();
+            auto input_rank  = input_shape.size();
+
+
+            if (!reduction_axes_) {
+                computed_shapes[0] = input_shape;
+                return computed_shapes;
+            }
+
+            auto& r_axes = *reduction_axes_;
+
+            // Full reduction (no axes provided)
+            if (r_axes.empty()) {
+                computed_shapes[0] = std::vector<size_t>{1};
+                return computed_shapes[0];
+            }
+
+            for (auto ax : r_axes) {
+                if (ax >= input_rank) {
+                    throw std::runtime_error("Reduction: the provided dimensions are not correct");
+                } 
+            }
+
+
+            std::vector<size_t> output_shape;
+
+            for (size_t i = 0; i < input_rank; ++i) {
+                if (std::find(r_axes.cbegin(), r_axes.cend(), i) != r_axes.cend()) {
+                    if (keepdims_) {
+                        output_shape.push_back(1);
+                    }  // else: reduced axis, skip. 
+                } else {
+                        output_shape.push_back(input_shape[i]);
+                }
+            }
+            computed_shapes[0] = output_shape;
         }
+
+        // ============================ BACKWARD BROADCASTING ============================
         
         else if (Op::get_direction() == Direction::BACKWARD) {
-
+            throw std::runtime_error("Backward reduction: shape broadcasting not implemented");
         }
 
-
-        
-        return {0}; // placeholder
+        return computed_shapes;
     }
     
     template <typename Op>
@@ -503,7 +545,7 @@ namespace tensor
     bool TensorIterator::get_common_requires_grad() { return common_requires_grad_; }
     
     void TensorIterator::set_inplace(bool val) { inplace_ = val; }
-    void TensorIterator::set_reduction_axes(const std::vector<size_t>& axes) { reduction_axes_ = axes; }
+    void TensorIterator::set_reduction_axes(std::optional<std::vector<size_t>> axes) { reduction_axes_ = std::move(axes); }
     void TensorIterator::set_keepdims(bool keepdims) { keepdims_ = keepdims; }
 
 
