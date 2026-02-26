@@ -25,6 +25,15 @@ namespace tensor {
     bool TensorImpl::get_contiguous()              { return contiguous_; }
 
 
+    void TensorImpl::set_shape(const std::vector<size_t>& shape)     { shape_ = shape; }
+    void TensorImpl::set_strides(const std::vector<size_t>& strides) { strides_ = strides; }
+    void TensorImpl::set_dtype(ScalarType dtype)                     { dtype_ = dtype; }
+    void TensorImpl::set_total_size(size_t total_size)               { total_size_ = total_size; }
+    void TensorImpl::set_device(const Device& device)                { device_ = device; }
+    void TensorImpl::set_requires_grad(bool requires_grad)           { requires_grad_ = requires_grad; }
+    void TensorImpl::set_contiguous(bool contiguous)                 { contiguous_ = contiguous; }
+
+
     // -------------------------------------------------------------------------------------------------------------  
     //                                              HELPER FUNCTIONS
     // -------------------------------------------------------------------------------------------------------------

@@ -45,6 +45,14 @@ namespace tensor
         bool requires_grad();
         bool get_contiguous();
 
+        void set_shape(const std::vector<size_t>& shape);
+        void set_strides(const std::vector<size_t>& strides);
+        void set_dtype(ScalarType dtype);
+        void set_total_size(size_t total_size);
+        void set_device(const Device& device);
+        void set_requires_grad(bool requires_grad);
+        void set_contiguous(bool contiguous);
+
 
         // -------------------------------------------------- HELPER FUNCTIONS --------------------------------------------------
 
