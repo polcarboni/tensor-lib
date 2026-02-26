@@ -215,5 +215,35 @@ namespace tensor::ops
     }
 
 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                 MATMUL DISPATCHERS
+    // ------------------------------------------------------------------------------------------------------------- 
+
+    template <typename Op, typename... Args>
+    TensorImpl dispatch_matmul(TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_input(&lhs);
+        iter.add_input(&rhs);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+
+        return *iter.get_outputs()[0];
+    }
+
+    template <typename Op, typename... Args>
+    void dispatch_matmul_inplace(TensorImpl &out, TensorImpl& lhs, TensorImpl& rhs, Args&&... args)
+    {
+        TensorIterator iter;
+        iter.add_output(&out);
+        iter.add_input(&lhs);
+        iter.add_input(&rhs);
+        iter.set_inplace(true);
+        iter.build<Op>();
+
+        dispatch_impl_<Op>(iter, std::forward<Args>(args)...);
+    }
+
 
 } // namespace tensor::ops
