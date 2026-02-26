@@ -1,7 +1,8 @@
 #pragma once
+#include "core/Types.hpp"
 #include <vector>
 #include <memory>
-#include "core/Types.hpp"
+#include <optional>
 
 namespace tensor
 {
@@ -38,7 +39,7 @@ namespace tensor
 
         // -------- Reduction operations data members -------- 
 
-        std::vector<size_t> reduction_axes_;
+        std::optional<std::vector<size_t>> reduction_axes_;
         bool keepdims_ = false;
 
 
@@ -165,7 +166,7 @@ namespace tensor
         bool get_common_requires_grad();
         
         void set_inplace(bool val);
-        void set_reduction_axes(const std::vector<size_t>& axes);
+        void set_reduction_axes(const std::optional<std::vector<size_t>> axes);
         void set_keepdims(bool keepdims);
 
         // -------------------------------------------------- DISPATCHER INTERFACES -------------------------------------------------- 

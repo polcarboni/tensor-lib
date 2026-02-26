@@ -1,6 +1,7 @@
 #include "core/TensorImpl.hpp"
 #include "core/TensorIterator.hpp"
 #include <utility>
+#include <optional>
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
@@ -23,8 +24,7 @@ namespace tensor::ops
             
             #ifdef USE_CUDA
                 else if (iter.get_common_device().type == DeviceType::CUDA) {
-                    // Current support only of single stream
-                    cudaStream_t stream = cudaStream_t(0);
+                    cudaStream_t stream = cudaStream_t(0);                      // Current support only of single stream
                     Op::cuda(iter, stream, std::forward<Args>(args)...);
                 }
             #endif
@@ -149,11 +149,13 @@ namespace tensor::ops
     // ------------------------------------------------------------------------------------------------------------- 
 
     template <typename Op, typename... Args>
-    TensorImpl dispatch_reduction(TensorImpl& tensor, const std::vector<size_t>& axes, bool keepdims, Args&&... args)
+    TensorImpl dispatch_reduction(TensorImpl& tensor,
+        const std::optional<std::vector<size_t>> axes,
+        bool keepdims, Args&&... args)
     {
         TensorIterator iter;
         iter.add_input(&tensor);
-        iter.set_reduction_axes(axes);
+        iter.set_reduction_axes(atd::move(axes));
         iter.set_keepdims(keepdims);
         iter.build<Op>();
 
@@ -164,12 +166,14 @@ namespace tensor::ops
 
     // Inplace reduction to a provided output tensor
     template <typename Op, typename... Args>
-    void dispatch_reduction_inplace(TensorImpl& out, TensorImpl& in, const std::vector<size_t>& axes, bool keepdims, Args&&... args)
+    void dispatch_reduction_inplace(TensorImpl& out, TensorImpl& in,
+        const std::optional<std::vector<size_t>> axes,
+        bool keepdims, Args&&... args)
     {
         TensorIterator iter;
         iter.add_input(&in);
         iter.add_output(&out);
-        iter.set_reduction_axes(axes);
+        iter.set_reduction_axes(std::move(axes));
         iter.set_keepdims(keepdims);
         iter.set_inplace(true);
         
