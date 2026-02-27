@@ -350,7 +350,68 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_matmul_()
     {
-        return {0}; // placeholder
+        std::vector<std::vector<size_t>> computed_shapes;
+        computed_shapes.resize(outputs_.size());
+
+
+        // ============================ FORWARD BROADCASTING ============================
+
+        if (Op::get_direction() == Direction::FORWARD) {
+
+            if (inputs_.size() != 2) {
+                throw std::runtime_error("TensorIterator: Matmul must have 2 operands");
+            }
+
+            auto lhs_shape = inputs_[0]->get_shape();
+            auto rhs_shape = inputs_[1]->get_shape();
+            auto lhs_rank = lhs_shape.size();
+            auto rhs_rank = rhs_shape.size();
+
+            if (lhs_rank > 3 || rhs_rank > 3) {
+                throw std::runtime_error("Matmul: inputs must be at most 3D");
+            }
+
+            if (lhs_rank == 3 && rhs_rank == 3 && lhs_shape[0] != rhs_shape[0] && lhs_shape[0] != 1 && rhs_shape[0] != 1) {
+                throw std::runtime_error("Matmul: batch dimensions are incompatible");
+            }
+
+            // Output matrix shape
+            size_t lhs_rows = lhs_shape[lhs_rank - 2];
+            size_t lhs_cols = lhs_shape[lhs_rank - 1];
+            size_t rhs_rows = rhs_shape[rhs_rank - 2];
+            size_t rhs_cols = rhs_shape[rhs_rank - 1];
+
+            if (lhs_cols != rhs_rows) {
+                throw std::runtime_error("Matmul: inner dimensions do not match (" +
+                                         std::to_string(lhs_cols) + " vs " +
+                                         std::to_string(rhs_rows) + ")");
+            }
+
+            std::vector<size_t> output_shape;
+
+            // Output batch size
+            if (lhs_rank == 3 || rhs_rank == 3) {
+                size_t lhs_batch = (lhs_rank == 3) ? lhs_shape[0] : 1;
+                size_t rhs_batch = (rhs_rank == 3) ? rhs_shape[0] : 1;
+                
+                auto batch = std::max(lhs_batch, rhs_batch);
+                output_shape.push_back(batch);
+            }
+
+            output_shape.push_back(lhs_rows);
+            output_shape.push_back(rhs_cols);
+
+            computed_shapes[0] = output_shape;
+        }
+
+
+        // ============================ BACKWARD BROADCASTING ============================
+
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("Backward Matmul: shape broadcasting not implemented");
+        }
+
+        return computed_shapes;
     }
     
     template <typename Op>
