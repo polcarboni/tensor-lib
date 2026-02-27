@@ -817,6 +817,7 @@ namespace tensor
     void TensorIterator::add_output(TensorImpl* tensor)
     {
         outputs_.push_back(tensor);
+        output_shapes_.push_back(tensor->get_shape());
     } 
 
     template <typename Op>
