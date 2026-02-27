@@ -20,4 +20,5 @@
 
 #define FOR_EACH_OP(X)          \
     FOR_EACH_FILLSTORAGE_OP(X)  \
-    FOR_EACH_BINARY_OP(X)       
+    FOR_EACH_BINARY_OP(X)
+    
