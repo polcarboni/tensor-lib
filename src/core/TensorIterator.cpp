@@ -125,9 +125,43 @@ namespace tensor
         
 
 
+    /**
+     * Checks the correct use of inline operations by validating the shape computed by the broadcasting
+     * again the provided output shape tensors.
+     */
+    void validate_output_shapes_(std::vector<std::vector<size_t>>& output_shapes,
+                                 std::vector<std::vector<size_t>>& computed_shapes)
+    {
+        if (computed_shapes.size() != output_shapes.size()) {
+            throw std::runtime_error("TensorIterator: number of computed output shapes (" +
+                                        std::to_string(computed_shapes.size()) +
+                                        ") does not match number of outputs (" +
+                                        std::to_string(output_shapes.size()) + ")");
+        }
+        
 
+        for (size_t i = 0; i < output_shapes.size(); ++i) {
 
+            const auto& output_shape = output_shapes[i];
+            const auto& computed_shape = computed_shapes[i];
 
+            if (output_shape.size() != computed_shape.size()) {
+                throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                         "] dimensionality mismatch: existing rank=" +
+                                         std::to_string(output_shape.size()) +
+                                         ", computed rank=" + std::to_string(computed_shape.size()));
+            }
+
+            for (size_t dim = 0; dim < computed_shape.size(); ++dim) {
+                if(output_shape[dim] != computed_shape[dim]) {
+                    throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                             "] shape mismatch at dim " + std::to_string(dim) +
+                                             ": existing=" + std::to_string(output_shape[dim]) +
+                                             ", computed=" + std::to_string(computed_shape[dim]));
+                }
+            }
+        }
+    }
 
 
 
@@ -153,35 +187,7 @@ namespace tensor
         // TODO: also check the inplace_ data member? remove the data member?
         
         if (!outputs_.empty()) {
-            if (computed_shapes.size() != outputs_.size()) {
-                throw std::runtime_error("TensorIterator: number of computed output shapes (" +
-                                            std::to_string(computed_shapes.size()) +
-                                            ") does not match number of outputs (" +
-                                            std::to_string(outputs_.size()) + ")");
-            }
-        }
-
-        for (size_t i = 0; i < outputs_.size(); ++i) {
-            if (outputs_[i] == nullptr) continue;
-
-            const auto& output_shape = outputs_[i]->get_shape();
-            const auto& computed_shape = computed_shapes[i];
-
-            if (output_shape.size() != computed_shape.size()) {
-                throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
-                                         "] dimensionality mismatch: existing rank=" +
-                                         std::to_string(output_shape.size()) +
-                                         ", computed rank=" + std::to_string(computed_shape.size()));
-            }
-
-            for (size_t dim = 0; dim < computed_shape.size(); ++dim) {
-                if(output_shape[dim] != computed_shape[dim]) {
-                    throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
-                                             "] shape mismatch at dim " + std::to_string(dim) +
-                                             ": existing=" + std::to_string(output_shape[dim]) +
-                                             ", computed=" + std::to_string(computed_shape[dim]));
-                }
-            }
+            validate_output_shapes_(output_shapes_, computed_shapes);
         }
 
         return computed_shapes;
