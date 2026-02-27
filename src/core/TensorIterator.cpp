@@ -326,6 +326,10 @@ namespace tensor
 
         if (Op::get_direction() == Direction::FORWARD) {
 
+            if(inputs_.size() != 1) {
+                throw std::runtime_error("TensorIterator: reduction operations must have 1 input");
+            }
+
             auto input       = inputs_[0];
             auto input_shape = input->get_shape();
             auto input_rank  = input_shape.size();
@@ -642,12 +646,64 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_()
     {
+        std::vector<std::vector<size_t>> result;
+
         if (Op::get_direction() == Direction::FORWARD) {
-            throw std::runtime_error("TensorIterator: compute_strides_reduction_() not implemented");
+            
+            // Identification of input reduced axis 
+            auto input = inputs_[0]; 
+            auto input_strides = input->get_strides(); 
+            auto ndim = input_strides.size(); 
+
+            std::vector<bool> is_reduced(ndim, false);
+            
+            if (reduction_axes_.has_value()) {
+                for (size_t ax : reduction_axes_.value()) {
+                    is_reduced[ax] = true;
+                }
+            }
+
+            // Does not use the strides data member for reasons I am not really familiar with:
+            // permutation of dimensions, coalescing of dimensions (ndim smaller than the original one)
+
+            // for now this could only be result.push_back(ipnut_strides);
+            // I will leave this comment to remember to add the required improvements for performance.
+            std::vector<size_t> input_iter_strides;
+            for (size_t i = 0; i < ndim; ++i) {
+                input_iter_strides.push_back(input_strides[i]);
+            }
+            result.push_back(std::move(input_iter_strides));
+
+
+            // This also assumes single output. Some reduction opes could be different
+            // but they might also use a separate function.
+
+            auto output = outputs_[0]; 
+            const auto& output_strides = output->get_strides(); 
+            // auto output_strides_size = output_strides.size(); 
+            std::vector<size_t> output_iter_strides;
+            size_t output_axis_idx = 0;
+
+            for (size_t i = 0; i < ndim; ++i) {
+                if (is_reduced[i]) {
+                    output_iter_strides.push_back(0);
+                    if (keepdims_) {
+                        output_axis_idx++;
+                    }
+                } else {
+                    output_iter_strides.push_back(output_strides[output_axis_idx]);
+                    output_axis_idx++;
+                }
+            }
+
+            result.push_back(std::move(output_iter_strides));
         }
+
         else if (Op::get_direction() == Direction::BACKWARD) {
             throw std::runtime_error("TensorIterator: compute_strides_reduction_() backward not implemented");
         }
+
+        return result;
     }
     
     template <typename Op>
