@@ -218,8 +218,8 @@ namespace tensor
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_elementwise_()
     {
         std::vector<std::vector<size_t>> computed_shapes;
-        computed_shapes.resize(outputs_.size());
-
+        computed_shapes.resize(Op::num_outputs());
+        
         is_broadcasted_ = false;
 
         // Forward operations havea single output so looping over outputs_ is not required
@@ -254,7 +254,6 @@ namespace tensor
             }
             
             // ---------------------- fast path 2: same shapes ----------------------
-            
             const auto& first_shape = inputs_[0]->get_shape();
             for (size_t i = 1; i < inputs_.size(); ++i) {
                 if (inputs_[i]->get_shape() != first_shape) {
@@ -268,30 +267,29 @@ namespace tensor
                 computed_shapes[0] = first_shape;
                 return computed_shapes;
             }
-        
-
+                        
             // ------------------------- broadcasting logic -------------------------
             
             size_t max_rank = 0;
             for (auto& input : inputs_) {
                 max_rank = std::max(max_rank, input->get_shape().size());
             }
-
+            
             // Initialize the output shape with 1s
             std::vector<size_t> output_shape(max_rank, 1);
-
+            
             // Iterate over inputs dimensions to update output_shape
             for (auto& input : inputs_) {
                 
                 auto input_shape = input->get_shape();
                 auto input_rank = input_shape.size(); 
                 size_t pad_offset = max_rank - input_rank;
-
+                
                 // Compare/accumulate input dimensions with broadcasting rules
                 for (size_t i = 0; i < input_rank; ++i) {
                     size_t input_dim = input_shape[i];
                     size_t& output_dim = output_shape[i + pad_offset];
-
+                    
                     if (input_dim == 1) {
                         continue;
                     } else if (output_dim == 1) {
@@ -515,8 +513,8 @@ namespace tensor
                 const size_t stride_idx = offset + i;
                 if (stride_idx >= computed_strides.size()) continue;
 
-                const auto& computed_stride = computed_strides[stride_idx];
-                const auto& output_strides =  outputs_[i]->get_strides();
+                const std::vector<size_t>& computed_stride = computed_strides[stride_idx];
+                const std::vector<size_t>& output_strides =  outputs_[i]->get_strides();
 
                 // Hard check: computed strides size must match the output shape size
                 if (computed_stride.size() != output_strides.size()) {
@@ -527,7 +525,9 @@ namespace tensor
                 }
                 
                 // Soft check: control if computed strides are different from original output strides
-                for (size_t dim = 0; dim < computed_strides.size(); ++dim) {
+                // TODO: change the name of the variable (computed_stride is the computed stride for the output) 
+                // but is too confusing
+                for (size_t dim = 0; dim < computed_stride.size(); ++dim) {
                     if (output_strides[dim] != computed_stride[dim]) {
                         std::cerr << "[TensorIterator] warning: output[" << i
                                     << "] stride mismatch at dim " << dim
@@ -554,7 +554,6 @@ namespace tensor
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_elementwise_()
     {
-
         /**
          * TODOFIX: this currently does not use the input tensors strides data member.
          *          these should be directly forwarded to the output if there is no
@@ -565,7 +564,6 @@ namespace tensor
 
         std::vector<std::vector<size_t>> all_strides;
         all_strides.reserve(inputs_.size() + outputs_.size());
-
 
         // ============================ FORWARD BROADCASTING ============================
 
@@ -598,8 +596,11 @@ namespace tensor
             // ---------------------- input strides ------------------------
             
             for (const auto& input : inputs_) {
-                const auto& actual_shape = input->get_shape();
-                const auto& actual_strides = input->get_strides();
+                std::cout << *input << std::endl;
+
+                const std::vector<size_t>& actual_shape = input->get_shape();
+                const std::vector<size_t>& actual_strides = input->get_strides();
+
                 size_t input_rank = actual_shape.size();
                 size_t pad_offset = max_rank - input_rank;
                 
@@ -629,9 +630,8 @@ namespace tensor
                 }
                 
                 all_strides.push_back(std::move(out_strides));
-            } 
+            }
         }
-
 
         // ============================ BACKWARD BROADCASTING ============================
 
