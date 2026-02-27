@@ -280,4 +280,6 @@ namespace tensor
         return os << to_string(tensor);
     }
 
+    TensorImpl add(TensorImpl& lhs, TensorImpl& rhs);
+
 } // namespace tensor

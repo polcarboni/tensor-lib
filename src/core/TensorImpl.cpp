@@ -1,7 +1,7 @@
 #include "core/Types.hpp"
 #include "core/TensorImpl.hpp"
 #include "core/Dispatchers.hpp"
-#include "ops/FillStorageOps.hpp"
+#include "ops/OpsRegistry.hpp"
 #include <cassert>
 #include <cstddef>
 
@@ -264,7 +264,18 @@ namespace tensor {
 
         // TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(*this, target_dtype);
         // return std::make_shared<TensorImpl>(std::move(result));
+        
+        return std::make_unique<TensorImpl>();  // placeholder
     }
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                          BINARY OPERATIONS
+    // -------------------------------------------------------------------------------------------------------------
+
+    TensorImpl add(TensorImpl& lhs, TensorImpl& rhs) {
+        return ops::dispatch_binary<ops::BinaryAdd>(lhs, rhs);
+    }
+
 
     /* Explicit instantiations */
 

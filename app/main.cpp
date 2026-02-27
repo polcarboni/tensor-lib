@@ -89,10 +89,17 @@ int main()
     // Tensor Impl on CUDA
 
     auto impl_cuda = tensor::TensorImpl({2,2}, 2.4, tensor::ScalarType::Float32, {tensor::DeviceType::CUDA, 0});
-
-    std::cout << "\ntest\n";
-
     std::cout << impl_cuda << std::endl;
+
+
+
+    // ====================================== BINARY OPERATION TEST ======================================
+
+    auto lhs = tensor::TensorImpl({3,3}, 4.321);
+    auto rhs = tensor::TensorImpl({3,1}, 5.121);
+
+    auto out = tensor::add(lhs, rhs);
+    std::cout << out << std::endl;
 
     return 0;
 }
