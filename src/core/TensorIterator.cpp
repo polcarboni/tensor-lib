@@ -117,8 +117,8 @@ namespace tensor
                                         ", expected: " + std::to_string(Op::num_inputs()));
         }
 
-        common_device_ = compute_common_device_();
-        common_dtype_  = compute_common_dtype_();
+        common_device_        = compute_common_device_();
+        common_dtype_         = compute_common_dtype_();
         common_requires_grad_ = compute_requires_grad_();
     }
 
@@ -180,14 +180,16 @@ namespace tensor
         if constexpr      (Op::iter_kind() == IterationKind::ELEMENT_WISE)  computed_shapes = broadcast_shapes_elementwise_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)     computed_shapes = broadcast_shapes_reduction_<Op>();
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)        computed_shapes = broadcast_shapes_matmul_<Op>();
-        else if constexpr (Op::iter_kind() == IterationKind::COPY)          computed_shapes = broadcast_shapes_copy_<Op>();
+        else if constexpr (Op::iter_kind() == IterationKind::COPY)          check_shapes_copy_<Op>();
 
         
         // =================================== OUTPUT SHAPES VALIDATION ===================================
         // TODO: also check the inplace_ data member? remove the data member?
         
-        if (!outputs_.empty()) {
-            validate_output_shapes_(output_shapes_, computed_shapes);
+        if constexpr (Op::iter_kind() != IterationKind::COPY) {
+            if (!outputs_.empty()) {
+                validate_output_shapes_(output_shapes_, computed_shapes);
+            }
         }
 
         return computed_shapes;
@@ -421,9 +423,33 @@ namespace tensor
     }
     
     template <typename Op>
-    std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_copy_()
+    void TensorIterator::check_shapes_copy_()
     {
-        return {0}; // placeholder
+
+        // ============================ FORWARD BROADCASTING ============================
+
+        if (Op::get_direction() == Direction::FORWARD) {
+
+            if (inputs_.size() != 1) {
+                throw std::runtime_error("TensorIterator: Copy operation must have 1 input");
+            }
+
+            auto input = inputs_[0];
+            auto input_size = input->get_total_size();
+
+            for (auto& output : outputs_) {
+                if(output->get_total_size() != input_size) {
+                    throw std::runtime_error("Copy operations: mismatch in input and output sizes");
+                }
+            
+            }
+        }
+
+        // ============================ BACKWARD BROADCASTING ============================
+
+        else if (Op::get_direction() == Direction::BACKWARD) {
+            throw std::runtime_error("Backward Copy: shape broadcasting not implemented");
+        }
     }
 
 

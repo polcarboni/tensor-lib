@@ -111,7 +111,7 @@ namespace tensor
         std::vector<std::vector<size_t>> broadcast_shapes_matmul_();
         
         template <typename Op>
-        std::vector<std::vector<size_t>> broadcast_shapes_copy_();
+        void check_shapes_copy_();
 
 
         // -------------------------------------------------- STRIDES BROADCASTING --------------------------------------------------
