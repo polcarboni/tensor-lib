@@ -776,7 +776,7 @@ namespace tensor
 
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
-                                                                        std::vector<std::vector<size_t>>& strides)
+                                                                          std::vector<std::vector<size_t>>& strides)
     {
         return {}; // placeholder
     }
@@ -790,20 +790,21 @@ namespace tensor
 
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_matmul_(std::vector<std::vector<size_t>>& shapes,
-                                                                    std::vector<std::vector<size_t>>& strides)
+                                                                     std::vector<std::vector<size_t>>& strides)
     {
         return {}; // placeholder
     }
-
-
 
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_copy_(std::vector<std::vector<size_t>>& shapes,
-                                                                std::vector<std::vector<size_t>>& strides)
+                                                                   std::vector<std::vector<size_t>>& strides)
     {
         return {}; // placeholder
     }
 
+
+
+    
     std::vector<size_t> TensorIterator::apply_merge_to_shape_(std::vector<size_t>& shape,
                                                               std::vector<bool>& merge_decision)
     {
