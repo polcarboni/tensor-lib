@@ -151,17 +151,43 @@ namespace tensor
 
         // -------------------------------------------------- DIMENSIONS COALESCING --------------------------------------------------
 
-        std::vector<bool> compute_merge_decision(std::vector<std::vector<size_t>>& shapes,
-                                                 std::vector<std::vector<size_t>>& strides);
+        /**
+         * Called by the coalesce_dimensions_( ) private method.
+         * 
+         * Computes the possibility of each dimension to be merged with the following one.
+         */
+        std::vector<bool> compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
+                                                  std::vector<std::vector<size_t>>& strides);
 
-        std::vector<size_t> apply_merge_to_shape(std::vector<size_t>& shape,
-                                                 std::vector<bool>& merge_decision);
+        /**
+         * Called by the coalesce_dimensions_( ) private method.
+         * 
+         * Applies a merge decision to a shape vector collapsing mergeable dimensions into a
+         * single dimension whose size is the product of the merged ones.
+         */
+        std::vector<size_t> apply_merge_to_shape_(std::vector<size_t>& shape,
+                                                  std::vector<bool>& merge_decision);
+        
+        /**
+         * Called by the coalesce_dimensions_( ) private method.
+         * 
+         * Applies a merge decision to all oeprands' stride vector, collapsing mergeable
+         * dimensions into a single stride entry.
+         * 
+         * Strides are defined and processed per-operand, differently from the shape.
+         */                                          
+        std::vector<std::vector<size_t>> apply_merge_to_strides_(std::vector<std::vector<size_t>>& strides,
+                                                                 std::vector<bool>& merge_decision);
 
-        std::vector<std::vector<size_t>> apply_merge_to_strides(std::vector<std::vector<size_t>>& strides,
-                                                                std::vector<bool>& merge_decision);
-
-        bool coalesce_dimensions(std::vector<std::vector<size_t>>& shapes,
-                                 std::vector<std::vector<size_t>>& strides);
+        /**
+         * Attempts to coalesce dimensions into fewer and larger dimensions, computes the merge
+         * decision based on the provided shapes and strides and applies it to produce:
+         * coalesced_shapes_ and coalesced_strides_.
+         * 
+         * Return true if coalescing was applied, false otherwise.
+         */
+        bool coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
+                                  std::vector<std::vector<size_t>>& strides);
 
 
 

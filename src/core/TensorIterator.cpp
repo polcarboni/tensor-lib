@@ -762,26 +762,26 @@ namespace tensor
     // ------------------------------------------------------------------------------------------------------------- 
 
 
-    std::vector<bool> TensorIterator::compute_merge_decision(std::vector<std::vector<size_t>>& shapes,
-                                             std::vector<std::vector<size_t>>& strides)
+    std::vector<bool> TensorIterator::compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
+                                                              std::vector<std::vector<size_t>>& strides)
     {
         return std::vector<bool>(false);   // placeholder
     }
 
-    std::vector<size_t> TensorIterator::apply_merge_to_shape(std::vector<size_t>& shape,
-                                             std::vector<bool>& merge_decision)
+    std::vector<size_t> TensorIterator::apply_merge_to_shape_(std::vector<size_t>& shape,
+                                                              std::vector<bool>& merge_decision)
     {
         return std::vector<size_t>(); // placeholder
     }
 
-    std::vector<std::vector<size_t>> TensorIterator::apply_merge_to_strides(std::vector<std::vector<size_t>>& strides,
-                                                            std::vector<bool>& merge_decision)
+    std::vector<std::vector<size_t>> TensorIterator::apply_merge_to_strides_(std::vector<std::vector<size_t>>& strides,
+                                                                             std::vector<bool>& merge_decision)
     {
         return std::vector<std::vector<size_t>>(); // placeholder
     }
 
-    bool TensorIterator::coalesce_dimensions(std::vector<std::vector<size_t>>& shapes,
-                             std::vector<std::vector<size_t>>& strides)
+    bool TensorIterator::coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
+                                              std::vector<std::vector<size_t>>& strides)
     {
         return false;   // placeholder
     }
