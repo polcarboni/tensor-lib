@@ -40,7 +40,7 @@ namespace tensor
         // multiple operands will therefore use the same coalesced shape. If this is not possible coalescing is not applied.
         // Strides can instead be different for each operand even in coalesced ops
 
-        std::vector<size_t>              coalesced_shapes_;
+        std::vector<size_t>              coalesced_shape_;
         std::vector<std::vector<size_t>> coalesced_strides_;
         bool is_coalesced_ = false;
 
@@ -156,9 +156,27 @@ namespace tensor
          * 
          * Computes the possibility of each dimension to be merged with the following one.
          */
+        template <typename Op>
         std::vector<bool> compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
                                                   std::vector<std::vector<size_t>>& strides);
 
+        template <typename Op>
+        std::vector<bool> compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
+                                                            std::vector<std::vector<size_t>>& strides);
+
+        template <typename Op>
+        std::vector<bool> compute_merge_decision_reduction_(std::vector<std::vector<size_t>>& shapes,
+                                                            std::vector<std::vector<size_t>>& strides);
+
+        template <typename Op>
+        std::vector<bool> compute_merge_decision_matmul_(std::vector<std::vector<size_t>>& shapes,
+                                                        std::vector<std::vector<size_t>>& strides);
+
+        template <typename Op>
+        std::vector<bool> compute_merge_decision_copy_(std::vector<std::vector<size_t>>& shapes,
+                                                    std::vector<std::vector<size_t>>& strides);
+
+                                                    
         /**
          * Called by the coalesce_dimensions_( ) private method.
          * 
@@ -186,6 +204,7 @@ namespace tensor
          * 
          * Return true if coalescing was applied, false otherwise.
          */
+        template <typename Op>
         bool coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
                                   std::vector<std::vector<size_t>>& strides);
 

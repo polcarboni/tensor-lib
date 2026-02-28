@@ -596,7 +596,6 @@ namespace tensor
             // ---------------------- input strides ------------------------
             
             for (const auto& input : inputs_) {
-                std::cout << *input << std::endl;
 
                 const std::vector<size_t>& actual_shape = input->get_shape();
                 const std::vector<size_t>& actual_strides = input->get_strides();
@@ -761,11 +760,48 @@ namespace tensor
     //                                                  DIMENSIONS COALESCING
     // ------------------------------------------------------------------------------------------------------------- 
 
-
+    template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
                                                               std::vector<std::vector<size_t>>& strides)
     {
-        return std::vector<bool>(false);   // placeholder
+        std::vector<bool> merge_decision;
+        
+        if      constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE) merge_decision = compute_merge_decision_elementwise_<Op>(shapes, strides);
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    merge_decision = compute_merge_decision_reduction_<Op>(shapes, strides);
+        else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       merge_decision = compute_merge_decision_matmul_<Op>(shapes, strides);
+        else if constexpr (Op::iter_kind() == IterationKind::COPY)         merge_decision = compute_merge_decision_copy_<Op>(shapes, strides);
+        
+        return merge_decision;
+    }
+
+    template <typename Op>
+    std::vector<bool> TensorIterator::compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
+                                                                        std::vector<std::vector<size_t>>& strides)
+    {
+        return {}; // placeholder
+    }
+
+    template <typename Op>
+    std::vector<bool> TensorIterator::compute_merge_decision_reduction_(std::vector<std::vector<size_t>>& shapes,
+                                                                        std::vector<std::vector<size_t>>& strides)
+    {
+        return {}; // placeholder
+    }
+
+    template <typename Op>
+    std::vector<bool> TensorIterator::compute_merge_decision_matmul_(std::vector<std::vector<size_t>>& shapes,
+                                                                    std::vector<std::vector<size_t>>& strides)
+    {
+        return {}; // placeholder
+    }
+
+
+
+    template <typename Op>
+    std::vector<bool> TensorIterator::compute_merge_decision_copy_(std::vector<std::vector<size_t>>& shapes,
+                                                                std::vector<std::vector<size_t>>& strides)
+    {
+        return {}; // placeholder
     }
 
     std::vector<size_t> TensorIterator::apply_merge_to_shape_(std::vector<size_t>& shape,
@@ -780,10 +816,23 @@ namespace tensor
         return std::vector<std::vector<size_t>>(); // placeholder
     }
 
+    // TODO-fix: consider providing also coalesced_shape_ and coalesced_strides_ also as 
+    // explicit args, not only as data members modified by the function.
+    template <typename Op>
     bool TensorIterator::coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
                                               std::vector<std::vector<size_t>>& strides)
     {
-        return false;   // placeholder
+        try
+        {
+            std::vector<bool> merge_decision = compute_merge_decision_<Op>(shapes,strides);
+            coalesced_shape_   = apply_merge_to_shape_  (shapes[0], merge_decision);
+            coalesced_strides_ = apply_merge_to_strides_(strides,   merge_decision);
+            return true;
+        } catch (...)
+        {
+            // Coalescing is not possible
+            return false;
+        }
     }
 
 
@@ -925,9 +974,10 @@ namespace tensor
         common_is_contiguous_ = check_contiguous_();
         broadcasted_strides_ = compute_broadcast_strides_<Op>();
 
-        if(!common_is_contiguous_) {
-            coalesce_dimensions(broadcasted_shapes_, broadcasted_strides_);
-        }
+        // CHECK BEFORE ACTUALLY USING IT
+        // if(!common_is_contiguous_) {
+        //     coalesce_dimensions_(broadcasted_shapes_, broadcasted_strides_);
+        // }
     }
 
 
@@ -997,8 +1047,8 @@ namespace tensor
 
     /* Explicit instantiations */
 
-    #define INSTANTIATE_T(T)                                \
-        template T* TensorIterator::input_ptr<T>(int);      \
+    #define INSTANTIATE_T(T)                            \
+        template T* TensorIterator::input_ptr<T>(int);  \
         template T* TensorIterator::output_ptr<T>(int);
 
     INSTANTIATE_T(float)
@@ -1007,11 +1057,43 @@ namespace tensor
     INSTANTIATE_T(int64_t)
     INSTANTIATE_T(bool)
 
-    #define INSTANTIATE_OP(Op)                                  \
-        template void TensorIterator::build<::tensor::ops::Op>(const ScalarType);  
+    #define INSTANTIATE_OP(Op)                                                      \
+        template void TensorIterator::build<::tensor::ops::Op>(                     \
+            const ScalarType                                                        \
+        );                                                                          \
+        template std::vector<bool>                                                  \
+        TensorIterator::compute_merge_decision_<::tensor::ops::Op>(                 \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );                                                                          \
+        template std::vector<bool>                                                  \
+        TensorIterator::compute_merge_decision_elementwise_<::tensor::ops::Op>(     \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );                                                                          \
+        template std::vector<bool>                                                  \
+        TensorIterator::compute_merge_decision_reduction_<::tensor::ops::Op>(       \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );                                                                          \
+        template std::vector<bool>                                                  \
+        TensorIterator::compute_merge_decision_matmul_<::tensor::ops::Op>(          \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );                                                                          \
+        template std::vector<bool>                                                  \
+        TensorIterator::compute_merge_decision_copy_<::tensor::ops::Op>(            \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );                                                                          \
+        template bool                                                               \
+        TensorIterator::coalesce_dimensions_<::tensor::ops::Op>(                    \
+            std::vector<std::vector<size_t>>&,                                      \
+            std::vector<std::vector<size_t>>&                                       \
+        );
 
     FOR_EACH_OP(INSTANTIATE_OP)
-    
+
     #undef INSTANTIATE_T
     #undef INSTANTIATE_OP
 
