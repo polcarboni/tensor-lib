@@ -798,14 +798,6 @@ namespace tensor
     // =============================================================================================================
     // =============================================================================================================
 
-
-    TensorIterator::TensorIterator() = default;
-    TensorIterator::TensorIterator(const TensorIterator&) = delete;
-    TensorIterator& TensorIterator::operator=(const TensorIterator&) = delete;
-    TensorIterator::TensorIterator(TensorIterator&&) = default;
-    TensorIterator& TensorIterator::operator=(TensorIterator&&) = default;
-
-
     // -------------------------------------------------------------------------------------------------------------  
     //                                                      GETTERS
     // ------------------------------------------------------------------------------------------------------------- 
@@ -944,7 +936,7 @@ namespace tensor
 
     const void* TensorIterator::input_data(int idx) const
     {
-        // placeholder
+        return nullptr; // placeholder
     }
     
     void* TensorIterator::output_data(int idx)

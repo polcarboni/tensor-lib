@@ -171,12 +171,11 @@ namespace tensor
     
     public:
         
-        TensorIterator();
-        TensorIterator(const TensorIterator&);
-        TensorIterator& operator=(const TensorIterator&);
-        TensorIterator(TensorIterator&&);
-        TensorIterator& operator=(TensorIterator&&);
-
+        TensorIterator() = default;
+        TensorIterator(const TensorIterator&) = delete;
+        TensorIterator& operator=(const TensorIterator&) = delete;
+        TensorIterator(TensorIterator&&) = default;
+        TensorIterator& operator=(TensorIterator&&) = default;
 
         // -------------------------------------------------- GETTERS --------------------------------------------------
         
