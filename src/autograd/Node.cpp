@@ -33,8 +33,8 @@ namespace tensor::grad
     
     const std::vector<Edge>& Node::next_edges() const
     {
-        auto a = std::vector<Edge> {};
-        return a;
+        static const std::vector<Edge> empty{};
+        return empty;       // placeholder
     }
     
     uint64_t Node::sequence_nr() const
