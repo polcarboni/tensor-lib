@@ -20,10 +20,11 @@ namespace tensor
 
         std::vector<TensorImpl*> inputs_;                               /* non-const for allowing inplace operations */
         std::vector<TensorImpl*> outputs_;
+        std::vector<std::vector<size_t>> output_shapes_;                /* original shapes of provided inplace output tensors */
 
         std::vector<std::unique_ptr<TensorImpl>> materialized_inputs_;  /* Type casted input copies */
-        std::unique_ptr<TensorImpl> nullary_output_;
-        bool inplace_ = false;
+        std::unique_ptr<TensorImpl> nullary_output_;                    /* Synthesized output tensor (for non-inplace operations) */
+        bool inplace_ = false;                                          /* STILL UNUSED */
 
         ScalarType common_dtype_;
         Device     common_device_;
@@ -31,10 +32,17 @@ namespace tensor
         bool       common_requires_grad_ = false;
 
         std::vector<std::vector<size_t>> broadcasted_shapes_;
-        std::vector<std::vector<size_t>> output_shapes_;
-
-        bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
         std::vector<std::vector<size_t>> broadcasted_strides_;
+        bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
+        
+        
+        // Coalesced shapes is only a vector since coalescing is possible only when shapes are shared
+        // multiple operands will therefore use the same coalesced shape. If this is not possible coalescing is not applied.
+        // Strides can instead be different for each operand even in coalesced ops
+
+        std::vector<size_t>              coalesced_shapes_;
+        std::vector<std::vector<size_t>> coalesced_strides_;
+        bool is_coalesced_ = false;
 
 
         // -------- Scalar operations data members -------- 
@@ -139,6 +147,22 @@ namespace tensor
          * Calls the type casting operations for tensor operators with dtype different from iterator.common_dtype_ 
          */
         void materialize_inputs_();
+        
+
+        // -------------------------------------------------- DIMENSIONS COALESCING --------------------------------------------------
+
+        std::vector<bool> compute_merge_decision(std::vector<std::vector<size_t>>& shapes,
+                                                 std::vector<std::vector<size_t>>& strides);
+
+        std::vector<size_t> apply_merge_to_shape(std::vector<size_t>& shape,
+                                                 std::vector<bool>& merge_decision);
+
+        std::vector<std::vector<size_t>> apply_merge_to_strides(std::vector<std::vector<size_t>>& strides,
+                                                                std::vector<bool>& merge_decision);
+
+        bool coalesce_dimensions(std::vector<std::vector<size_t>>& shapes,
+                                 std::vector<std::vector<size_t>>& strides);
+
 
 
         // =============================================================================================================  

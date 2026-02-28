@@ -732,19 +732,46 @@ namespace tensor
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  TYPES MATERIALIZATION
     // ------------------------------------------------------------------------------------------------------------- 
-
+    
     void TensorIterator::materialize_inputs_()
     {
         for (size_t i = 0; i < inputs_.size(); ++i) {
             if (!inputs_[i] || inputs_[i]->get_dtype() == common_dtype_) continue;
-                // This will produce a nested iterator call
-                materialized_inputs_.push_back(inputs_[i]->to_dtype(common_dtype_));
-                inputs_[i] = materialized_inputs_.back().get();
+            // This will produce a nested iterator call
+            materialized_inputs_.push_back(inputs_[i]->to_dtype(common_dtype_));
+            inputs_[i] = materialized_inputs_.back().get();
         }
     }
+    
+
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  DIMENSIONS COALESCING
+    // ------------------------------------------------------------------------------------------------------------- 
 
 
+    std::vector<bool> TensorIterator::compute_merge_decision(std::vector<std::vector<size_t>>& shapes,
+                                             std::vector<std::vector<size_t>>& strides)
+    {
+        return std::vector<bool>(false);   // placeholder
+    }
 
+    std::vector<size_t> TensorIterator::apply_merge_to_shape(std::vector<size_t>& shape,
+                                             std::vector<bool>& merge_decision)
+    {
+        return std::vector<size_t>(); // placeholder
+    }
+
+    std::vector<std::vector<size_t>> TensorIterator::apply_merge_to_strides(std::vector<std::vector<size_t>>& strides,
+                                                            std::vector<bool>& merge_decision)
+    {
+        return std::vector<std::vector<size_t>>(); // placeholder
+    }
+
+    bool TensorIterator::coalesce_dimensions(std::vector<std::vector<size_t>>& shapes,
+                             std::vector<std::vector<size_t>>& strides)
+    {
+        return false;   // placeholder
+    }
 
 
 
@@ -892,6 +919,10 @@ namespace tensor
 
         common_is_contiguous_ = check_contiguous_();
         broadcasted_strides_ = compute_broadcast_strides_<Op>();
+
+        if(!common_is_contiguous_) {
+            coalesce_dimensions(broadcasted_shapes_, broadcasted_strides_);
+        }
     }
 
 
