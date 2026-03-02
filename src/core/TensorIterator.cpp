@@ -264,13 +264,13 @@ namespace tensor
                         
             // ------------------------- broadcasting logic -------------------------
             
-            // Initialize the output shape with 1s
-            std::vector<size_t> output_shape(max_rank, 1);
             size_t max_rank = 0;
             
             for (auto& input : inputs_) {
                 max_rank = std::max(max_rank, input->get_shape().size());
             }
+            // Initialize the output shape with 1s
+            std::vector<size_t> output_shape(max_rank, 1);
             
             // Iterate over inputs dimensions to update output_shape
             for (auto& input : inputs_) {
@@ -893,17 +893,24 @@ namespace tensor
         return new_strides;
     }
 
-    // TODO-fix: consider providing also coalesced_shape_ and coalesced_strides_ also as 
-    // explicit args, not only as data members modified by the function.
+
     template <typename Op>
     bool TensorIterator::coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
                                               std::vector<std::vector<size_t>>& strides)
     {
         try
         {
-            std::vector<bool> merge_decision = compute_merge_decision_<Op>(shapes,strides);
-            coalesced_shape_   = apply_merge_to_shape_  (shapes[0], merge_decision);
-            coalesced_strides_ = apply_merge_to_strides_(strides,   merge_decision);
+            std::vector<bool> merge_decision = compute_merge_decision_<Op>(shapes, strides);
+            auto new_common_shape  = apply_merge_to_shape_  (shapes[0], merge_decision);
+            auto new_strides       = apply_merge_to_strides_(strides,   merge_decision);
+            
+            strides = std::move(new_strides);
+            
+            // Assign the same shape to all operators if coalescing is correctly executable.
+            for (auto& shape : shapes) {
+                shape = new_common_shape;
+            }
+            
             return true;
         } catch (...)
         {
@@ -1105,10 +1112,7 @@ namespace tensor
         common_is_contiguous_ = check_contiguous_();
         broadcasted_strides_ = compute_broadcast_strides_<Op>();
 
-        // CHECK BEFORE ACTUALLY USING IT
-        // if(!common_is_contiguous_) {
-        //     coalesce_dimensions_(broadcasted_shapes_, broadcasted_strides_);
-        // }
+        coalesce_dimensions_<Op>(broadcasted_shapes_, broadcasted_strides_);
     }
 
 
