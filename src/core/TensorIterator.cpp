@@ -849,7 +849,22 @@ namespace tensor
     std::vector<size_t> TensorIterator::apply_merge_to_shape_(std::vector<size_t>& shape,
                                                               std::vector<bool>& merge_decision)
     {
-        return std::vector<size_t>(); // placeholder
+        if (shape.empty()) return {};
+
+        std::vector<size_t> new_shape;
+        size_t current_dim_size = shape[0];
+
+        for (size_t i = 0; i < merge_decision.size(); ++i) {
+            if (merge_decision[i]) {
+                current_dim_size *= shape[i + 1];
+            } else {
+                new_shape.push_back(current_dim_size);
+                current_dim_size = shape[i + 1];
+            }
+        }
+        new_shape.push_back(current_dim_size);
+
+        return new_shape;
     }
 
     std::vector<std::vector<size_t>> TensorIterator::apply_merge_to_strides_(std::vector<std::vector<size_t>>& strides,
