@@ -777,22 +777,49 @@ namespace tensor
         return merge_decision;
     }
 
-    /**
-     * These functions use as input the broadcasted shapes. I am not sure however
-     * these shapes are the same.
-     */
-
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
                                                                           std::vector<std::vector<size_t>>& strides)
     {
-        
-        // const size_t ndim = shapes.empty() ? 0 : shapes[0].size();
-        // const size_t ntensors = shapes.size();
+        // Rank 0/1: no dimensions that can be merged.
+        if (shapes.empty() || shapes[0].size() <= 1) {
+            throw std::runtime_error("TensorIterator: Rank 0/1 operator have no dimensions to coalesce.");
+        }
 
-        // if (ndim == 0) {
-        //     return {};
-        // }
+        const auto& common_shape = shapes[0];
+        size_t num_dims = common_shape.size();
+        size_t num_tensors = strides.size();
+
+        std::vector<bool> merge_decisions;
+        merge_decisions.reserve(num_dims - 1);
+
+        bool merge_possible = false;
+
+        for (size_t d = 0; d < num_dims - 1; ++d) {
+            bool can_merge = true;
+            
+            // Check the contiguity condition for operands
+            for (size_t t = 0; t < num_tensors; ++t) {
+                const auto& t_strides = strides[t];
+                
+                // RULE: Shape[2,5], Strides [5,1] ->  5 == 5 * 1; true;
+                if (t_strides[d] != common_shape[d + 1] * t_strides[d + 1]) {
+                    can_merge = false;
+                    break;
+                }
+            }
+
+            if (can_merge) {
+                merge_possible = true;
+            }
+            merge_decisions.push_back(can_merge);
+        }
+
+        if (!merge_possible) {
+            throw std::runtime_error("TensorIterator: No dimensions are mergeable, coalesicng optimization unavailable");
+        }
+
+        return merge_decisions;
     }
 
     template <typename Op>
