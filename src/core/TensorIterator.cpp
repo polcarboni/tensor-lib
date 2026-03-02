@@ -3,9 +3,6 @@
 #include "ops/OpsRegistry.hpp"
 #include <algorithm>
 
-/**
- * TODO: check which templates require explicit instantiations
- */
 namespace tensor
 {
 
@@ -187,10 +184,7 @@ namespace tensor
         }
     }
 
-       
-    // TODO: SEPARATE broadcasting and validation (validation is simply a size vector comparison).
-    // TODO-fix: The return types assumes always a single output. Might require more than one (they might be of the same
-    // shape in any relevant case but not changing would be a bad approach) 
+
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_()
     {
@@ -221,8 +215,6 @@ namespace tensor
         computed_shapes.resize(Op::num_outputs());
         
         is_broadcasted_ = false;
-
-        // Forward operations havea single output so looping over outputs_ is not required
         
         // ============================ FORWARD BROADCASTING ============================
 
@@ -254,7 +246,10 @@ namespace tensor
             }
             
             // ---------------------- fast path 2: same shapes ----------------------
+
             const auto& first_shape = inputs_[0]->get_shape();
+
+            // Check all inputs shapes against the first one
             for (size_t i = 1; i < inputs_.size(); ++i) {
                 if (inputs_[i]->get_shape() != first_shape) {
                     is_broadcasted_ = true;
@@ -262,27 +257,26 @@ namespace tensor
                 }
             }
             
-            if (!is_broadcasted_)
-            {
+            if (!is_broadcasted_) {
                 computed_shapes[0] = first_shape;
                 return computed_shapes;
             }
                         
             // ------------------------- broadcasting logic -------------------------
             
+            // Initialize the output shape with 1s
+            std::vector<size_t> output_shape(max_rank, 1);
             size_t max_rank = 0;
+            
             for (auto& input : inputs_) {
                 max_rank = std::max(max_rank, input->get_shape().size());
             }
             
-            // Initialize the output shape with 1s
-            std::vector<size_t> output_shape(max_rank, 1);
-            
             // Iterate over inputs dimensions to update output_shape
             for (auto& input : inputs_) {
                 
-                auto input_shape = input->get_shape();
-                auto input_rank = input_shape.size(); 
+                auto input_shape  = input->get_shape();
+                auto input_rank   = input_shape.size(); 
                 size_t pad_offset = max_rank - input_rank;
                 
                 // Compare/accumulate input dimensions with broadcasting rules
@@ -364,6 +358,7 @@ namespace tensor
                         output_shape.push_back(input_shape[i]);
                 }
             }
+
             computed_shapes[0] = output_shape;
         }
 
@@ -760,6 +755,14 @@ namespace tensor
     //                                                  DIMENSIONS COALESCING
     // ------------------------------------------------------------------------------------------------------------- 
 
+    /**
+     * If the merge decision depends on the nature of the operation (and the amount of inputs/outputs) the 
+     * operation template provides data member with the number of inputs/outputs (for correctly selecting elements
+     * of the shapes vector).
+     * 
+     * It probably does not.
+     */
+
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
                                                               std::vector<std::vector<size_t>>& strides)
@@ -774,11 +777,22 @@ namespace tensor
         return merge_decision;
     }
 
+    /**
+     * These functions use as input the broadcasted shapes. I am not sure however
+     * these shapes are the same.
+     */
+
     template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
                                                                           std::vector<std::vector<size_t>>& strides)
     {
-        return {}; // placeholder
+        
+        // const size_t ndim = shapes.empty() ? 0 : shapes[0].size();
+        // const size_t ntensors = shapes.size();
+
+        // if (ndim == 0) {
+        //     return {};
+        // }
     }
 
     template <typename Op>
@@ -1038,7 +1052,17 @@ namespace tensor
         return static_cast<T*>(output_data(idx));
     }
 
-    
+    /**
+     * TODO: add missing interfaces for:
+     *  - get_ndim(): number of dimensions of the operators (can be coalesced)
+     *  - get_shapes(): shapes of the operands
+     *  - get_strides(): strides of the operands
+     * 
+     *  Needed with the pointer to the data storage for the implementation of the operations.
+     * 
+     *  They might or should be with the regular getters, could move this code block close to that 
+     *  or reorganize it in a different way. 
+     */
 
 
 
