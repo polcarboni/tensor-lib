@@ -18,20 +18,20 @@ namespace tensor
     class TensorIterator {
     private: 
 
-        std::vector<TensorImpl*> inputs_;                               /* non-const for allowing inplace operations */
-        std::vector<TensorImpl*> outputs_;
-        std::vector<std::vector<size_t>> output_shapes_;                /* original shapes of provided inplace output tensors */
+        std::vector<TensorImpl*> inputs_;                               /* pointers to input tensors, updated using add_input( ) */
+        std::vector<TensorImpl*> outputs_;                              /* pointers to output tensors, updated using add_output( ) */
+        std::vector<std::vector<size_t>> output_shapes_;                /* original shapes of provided inplace output tensors, updated using add_output( ) */
 
-        std::vector<std::unique_ptr<TensorImpl>> materialized_inputs_;  /* Type casted input copies */
+        std::vector<std::unique_ptr<TensorImpl>> materialized_inputs_;  /* Type casted input copies, created with potiner added to outputs_ */
         std::unique_ptr<TensorImpl> nullary_output_;                    /* Synthesized output tensor (for non-inplace operations) */
         bool inplace_ = false;                                          /* STILL UNUSED */
 
-        ScalarType common_dtype_;
-        Device     common_device_;
-        bool       common_is_contiguous_ = false;
-        bool       common_requires_grad_ = false;
+        ScalarType common_dtype_;                                       /* true if operands have same dtype_ (cast type if not) */
+        Device     common_device_;                                      /* true if operands are on same device (hard requirement) */
+        bool       common_is_contiguous_ = false;                       /* true if all operands are contiguous */
+        bool       common_requires_grad_ = false;                       /* true if all tensors require grads */
 
-        std::vector<std::vector<size_t>> broadcasted_shapes_;
+        std::vector<std::vector<size_t>> broadcasted_shapes_;           
         std::vector<std::vector<size_t>> broadcasted_strides_;
         bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
         
