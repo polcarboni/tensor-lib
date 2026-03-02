@@ -956,11 +956,65 @@ namespace tensor
     void TensorIterator::set_scalar(bool scalar)     { scalar_ = scalar; }
 
 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                KERNEL INTERFACES
+    // -------------------------------------------------------------------------------------------------------------
 
+    void* TensorIterator::input_data(int idx)
+    {
+        if (idx < 0 || static_cast<size_t>(idx) >= inputs_.size())
+            throw std::out_of_range("input_data: out_of range");
+        return inputs_[idx]->data_ptr();
+    }
 
+    const void* TensorIterator::input_data(int idx) const
+    {
+        return nullptr; // placeholder
+    }
+    
+    void* TensorIterator::output_data(int idx)
+    {
+        if (idx < 0 || idx >= static_cast<int>(outputs_.size()))
+        throw std::out_of_range("output_data: index out of range");
+        return outputs_[idx]->data_ptr();
+    }
 
+    const void* TensorIterator::output_data(int idx) const
+    {
+        return nullptr; // placeholder
+    }
+    
+    void* TensorIterator::output_grad_data(int idx)
+    {
+        return nullptr; // placeholder
+    }
 
+    const void* TensorIterator::output_grad_data(int idx) const
+    {
+        return nullptr; // placeholder
+    }
+    
 
+    template <typename T>
+    T* TensorIterator::input_ptr(int idx)
+    {
+        return static_cast<T*>(input_data(idx));
+    }
+
+    template <typename T>
+    T* TensorIterator::output_ptr(int idx)
+    {
+        return static_cast<T*>(output_data(idx));
+    }
+
+    /**
+     * TODO: add missing interfaces for:
+     *  - get_ndim(): number of dimensions of the operators (can be coalesced)
+     *  - get_shapes(): shapes of the operands
+     *  - get_strides(): strides of the operands
+     * 
+     *  Needed with the pointer to the data storage for the implementation of the operations.
+     */
 
 
     // -------------------------------------------------------------------------------------------------------------  
@@ -1056,77 +1110,6 @@ namespace tensor
         //     coalesce_dimensions_(broadcasted_shapes_, broadcasted_strides_);
         // }
     }
-
-
-
-
-
-
-
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                KERNEL INTERFACES
-    // -------------------------------------------------------------------------------------------------------------
-
-    void* TensorIterator::input_data(int idx)
-    {
-        if (idx < 0 || static_cast<size_t>(idx) >= inputs_.size())
-            throw std::out_of_range("input_data: out_of range");
-        return inputs_[idx]->data_ptr();
-    }
-
-    const void* TensorIterator::input_data(int idx) const
-    {
-        return nullptr; // placeholder
-    }
-    
-    void* TensorIterator::output_data(int idx)
-    {
-        if (idx < 0 || idx >= static_cast<int>(outputs_.size()))
-        throw std::out_of_range("output_data: index out of range");
-        return outputs_[idx]->data_ptr();
-    }
-
-    const void* TensorIterator::output_data(int idx) const
-    {
-        return nullptr; // placeholder
-    }
-    
-    void* TensorIterator::output_grad_data(int idx)
-    {
-        return nullptr; // placeholder
-    }
-
-    const void* TensorIterator::output_grad_data(int idx) const
-    {
-        return nullptr; // placeholder
-    }
-    
-
-    template <typename T>
-    T* TensorIterator::input_ptr(int idx)
-    {
-        return static_cast<T*>(input_data(idx));
-    }
-
-    template <typename T>
-    T* TensorIterator::output_ptr(int idx)
-    {
-        return static_cast<T*>(output_data(idx));
-    }
-
-    /**
-     * TODO: add missing interfaces for:
-     *  - get_ndim(): number of dimensions of the operators (can be coalesced)
-     *  - get_shapes(): shapes of the operands
-     *  - get_strides(): strides of the operands
-     * 
-     *  Needed with the pointer to the data storage for the implementation of the operations.
-     * 
-     *  They might or should be with the regular getters, could move this code block close to that 
-     *  or reorganize it in a different way. 
-     */
-
-
 
 
 
