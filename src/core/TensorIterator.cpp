@@ -870,7 +870,27 @@ namespace tensor
     std::vector<std::vector<size_t>> TensorIterator::apply_merge_to_strides_(std::vector<std::vector<size_t>>& strides,
                                                                              std::vector<bool>& merge_decision)
     {
-        return std::vector<std::vector<size_t>>(); // placeholder
+        if (strides.empty()) return {};
+
+        size_t num_tensors = strides.size();
+        std::vector<std::vector<size_t>> new_strides;
+        new_strides.reserve(num_tensors);
+
+        for (size_t t = 0; t < num_tensors; ++t) {
+            const auto& t_strides = strides[t];
+            std::vector<size_t> new_t_strides;
+
+            for (size_t i = 0; i < merge_decision.size(); ++i) {
+                if (!merge_decision[i]) {
+                    new_t_strides.push_back(t_strides[i]);
+                }
+            }
+            new_t_strides.push_back(t_strides.back());
+
+            new_strides.push_back(std::move(new_t_strides));
+        }
+
+        return new_strides;
     }
 
     // TODO-fix: consider providing also coalesced_shape_ and coalesced_strides_ also as 
