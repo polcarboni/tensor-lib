@@ -10,5 +10,8 @@ set_target_properties(tensor_cuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON)
 
+target_compile_options(tensor_cuda PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+
 target_link_libraries(tensor_cuda PUBLIC
     CUDA::cudart)
