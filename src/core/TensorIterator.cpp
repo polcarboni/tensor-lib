@@ -2,6 +2,7 @@
 #include "core/TensorIterator.hpp"
 #include "ops/OpsRegistry.hpp"
 #include <algorithm>
+#include <numeric>
 
 namespace tensor
 {
@@ -763,7 +764,7 @@ namespace tensor
      * It probably does not.
      */
 
-    template <typename Op>
+template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
                                                               std::vector<std::vector<size_t>>& strides)
     {
@@ -773,7 +774,29 @@ namespace tensor
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    merge_decision = compute_merge_decision_reduction_<Op>(shapes, strides);
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       merge_decision = compute_merge_decision_matmul_<Op>(shapes, strides);
         else if constexpr (Op::iter_kind() == IterationKind::COPY)         merge_decision = compute_merge_decision_copy_<Op>(shapes, strides);
+
+        // std::cout << "SHAPES=[\n";
+        // for (size_t i = 0; i < shapes.size(); ++i) {
+        //     std::cout << "  [" << i << "]: [";
+        //     for (auto x : shapes[i]) std::cout << x << ", ";
+        //     std::cout << "]\n";
+        // }
+        // std::cout << "]\n";
+
+        // std::cout << "STRIDES=[\n";
+        // for (size_t i = 0; i < strides.size(); ++i) {
+        //     std::cout << "  [" << i << "]: [";
+        //     for (auto x : strides[i]) std::cout << x << ", ";
+        //     std::cout << "]\n";
+        // }
+        // std::cout << "]\n";
         
+        // std::cout << "MERGE DECISION=[";
+        // for (auto x : merge_decision) {
+        //     std::cout << (x ? "true" : "false") << ", ";
+        // }
+        // std::cout << "]" << std::endl;
+
         return merge_decision;
     }
 
@@ -1024,6 +1047,91 @@ namespace tensor
      */
 
 
+    size_t TensorIterator::get_ndim()  const { return ndim_; }
+    size_t TensorIterator::get_numel() const { return numel_; }
+
+    const std::vector<size_t>& TensorIterator::get_shape() const
+    {
+        if (broadcasted_shapes_.empty()) {
+            static const std::vector<size_t> empty_shape{};
+            return empty_shape;
+        }
+        return broadcasted_shapes_[0];
+    }
+
+
+    const std::vector<size_t>& TensorIterator::get_strides(int arg_idx) const
+    {
+        return broadcasted_strides_[arg_idx];
+    }
+
+
+    size_t TensorIterator::get_stride(int arg_idx, int dim_idx) const
+    {
+        return broadcasted_strides_[arg_idx][dim_idx];
+    }
+
+    // get_numel has actually a different meaning for each operation. But the same API!
+
+    template <typename Op>
+    size_t TensorIterator::compute_numel_(const std::vector<std::vector<size_t>>& broadcasted_strides) {
+        
+        auto shape_numel = [](const std::vector<size_t>& shape) -> size_t {
+            return std::accumulate(shape.begin(), shape.end(), size_t(1), std::multiplies<size_t>{});
+        };
+
+        if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE ||
+                      Op::iter_kind() == IterationKind::COPY) {
+            
+            // Check: the number of elements is based on teh shape of the output.
+            // each element of the output is computed by an operation (an element).
+            
+            return shape_numel(broadcasted_shapes_[0]);
+        }
+        
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
+            // return shape_numel(broadcasted_shapes[0]);
+
+            // This should be based on the size of the input, since using the output size
+            // will copmute less operations (smaller). 
+            throw std::runtime_error("compute_numel_: not implemented for REDUCTION");
+        }
+        
+        else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
+            
+            // The numel should be the size of the output. With each element consuming
+            // a row of lhs and a col of rhs.
+            
+            throw std::runtime_error("compute_numel_: not implemented for MATMUL");
+        }
+
+        return 0;
+    }
+
+
+    template <typename Op>
+    size_t TensorIterator::compute_ndim_(const std::vector<std::vector<size_t>>& broadcasted_strides) {
+        
+        if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE ||
+                      Op::iter_kind() == IterationKind::COPY) {
+            
+            if (broadcasted_strides.empty()) {
+                return 0;
+            }
+            
+            // Broadcasted strides have all the same rank
+            return broadcasted_strides[0].size();
+        }
+        
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
+            throw std::runtime_error("compute_ndim_: not implemented for REDUCTION");
+        }
+        
+        else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {  
+            throw std::runtime_error("compute_ndim_: not implemented for MATMUL");
+        }
+    }
+
     // -------------------------------------------------------------------------------------------------------------  
     //                                                DISPATCHER INTERFACES
     // ------------------------------------------------------------------------------------------------------------- 
@@ -1111,8 +1219,11 @@ namespace tensor
 
         common_is_contiguous_ = check_contiguous_();
         broadcasted_strides_ = compute_broadcast_strides_<Op>();
-
+        
         coalesce_dimensions_<Op>(broadcasted_shapes_, broadcasted_strides_);
+
+        numel_ = compute_numel_<Op>(broadcasted_strides_);
+        ndim_  = compute_ndim_<Op>(broadcasted_strides_);
     }
 
 
@@ -1137,33 +1248,41 @@ namespace tensor
         );                                                                          \
         template std::vector<bool>                                                  \
         TensorIterator::compute_merge_decision_<::tensor::ops::Op>(                 \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shape,                                \
+            std::vector<std::vector<size_t>>& strides                               \
         );                                                                          \
         template std::vector<bool>                                                  \
         TensorIterator::compute_merge_decision_elementwise_<::tensor::ops::Op>(     \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shapes,                               \
+            std::vector<std::vector<size_t>>& strides                               \
         );                                                                          \
         template std::vector<bool>                                                  \
         TensorIterator::compute_merge_decision_reduction_<::tensor::ops::Op>(       \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shapes,                               \
+            std::vector<std::vector<size_t>>& strides                               \
         );                                                                          \
         template std::vector<bool>                                                  \
         TensorIterator::compute_merge_decision_matmul_<::tensor::ops::Op>(          \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shapes,                               \
+            std::vector<std::vector<size_t>>& strides                               \
         );                                                                          \
         template std::vector<bool>                                                  \
         TensorIterator::compute_merge_decision_copy_<::tensor::ops::Op>(            \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shapes,                               \
+            std::vector<std::vector<size_t>>& strides                               \
         );                                                                          \
         template bool                                                               \
         TensorIterator::coalesce_dimensions_<::tensor::ops::Op>(                    \
-            std::vector<std::vector<size_t>>&,                                      \
-            std::vector<std::vector<size_t>>&                                       \
+            std::vector<std::vector<size_t>>& shapes,                               \
+            std::vector<std::vector<size_t>>& strides                               \
+        );                                                                          \
+        template size_t                                                             \
+        TensorIterator::compute_ndim_<::tensor::ops::Op>(                           \
+            const std::vector<std::vector<size_t>>& broadcasted_strides                   \
+        );                                                                          \
+        template size_t                                                             \
+        TensorIterator::compute_numel_<::tensor::ops::Op>(                          \
+            const std::vector<std::vector<size_t>>& broadcasted_strides                   \
         );
 
     FOR_EACH_OP(INSTANTIATE_OP)
