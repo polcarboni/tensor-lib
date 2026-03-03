@@ -40,9 +40,12 @@ namespace tensor
         // multiple operands will therefore use the same coalesced shape. If this is not possible coalescing is not applied.
         // Strides can instead be different for each operand even in coalesced ops
 
-        std::vector<size_t>              coalesced_shape_;
+        std::vector<size_t>              coalesced_shape_;              
         std::vector<std::vector<size_t>> coalesced_strides_;
         bool is_coalesced_ = false;
+
+        size_t numel_;                                                  /* Number of elements of the iterator space */
+        size_t ndim_;                                                   /* Rank of the iterator space */
 
 
         // -------- Scalar operations data members -------- 
@@ -162,7 +165,7 @@ namespace tensor
 
         template <typename Op>
         std::vector<bool> compute_merge_decision_elementwise_(std::vector<std::vector<size_t>>& shapes,
-                                                            std::vector<std::vector<size_t>>& strides);
+                                                              std::vector<std::vector<size_t>>& strides);
 
         template <typename Op>
         std::vector<bool> compute_merge_decision_reduction_(std::vector<std::vector<size_t>>& shapes,
@@ -174,7 +177,7 @@ namespace tensor
 
         template <typename Op>
         std::vector<bool> compute_merge_decision_copy_(std::vector<std::vector<size_t>>& shapes,
-                                                    std::vector<std::vector<size_t>>& strides);
+                                                       std::vector<std::vector<size_t>>& strides);
 
                                                     
         /**
@@ -199,8 +202,7 @@ namespace tensor
 
         /**
          * Attempts to coalesce dimensions into fewer and larger dimensions, computes the merge
-         * decision based on the provided shapes and strides and applies it to produce:
-         * coalesced_shapes_ and coalesced_strides_.
+         * decision based on the provided shapes and strides. Modifies the inputs inplace.
          * 
          * Return true if coalescing was applied, false otherwise.
          */
@@ -208,6 +210,27 @@ namespace tensor
         bool coalesce_dimensions_(std::vector<std::vector<size_t>>& shapes,
                                   std::vector<std::vector<size_t>>& strides);
 
+
+        
+
+        /**
+         * Compute the number of iterator space elements based on the type of operation:
+         *  - ELEMENT_WISE: number of elements of the output tensor.
+         *  - REDUCTION: still not implemented.
+         *  - MATMUL: still not implemented.
+         */
+        template <typename Op>
+        size_t compute_numel_(const std::vector<std::vector<size_t>>& broadcasted_strides);
+        
+        /**
+         * Compute the number of dimensions of the iterator space:
+         *  - ELEMENT_WISE: rank of any broadcasted operand.
+         *  - REDUCTION: still not implemented.
+         *  - MATMUL: still not implemented.
+         */
+        template <typename Op>
+        size_t compute_ndim_(const std::vector<std::vector<size_t>>& broadcasted_strides);
+        
 
 
         // =============================================================================================================  
@@ -268,6 +291,32 @@ namespace tensor
 
         template <typename T>
         T* output_ptr(int idx = 0);
+
+
+        /**
+         * Returns the number of dimensions of the iteration space.
+         */
+        size_t get_ndim() const;
+
+        /**
+         * Return the total number of elements in the iteration space.
+         */
+        size_t get_numel() const;
+
+        /**
+         * Return the shape of the iteration space
+         */
+        const std::vector<size_t>& get_shape() const;
+
+        /**
+         * Returns the strides of a specific operand (input or output).
+         */
+        const std::vector<size_t>& get_strides(int arg_idx) const;
+
+        /**
+         * Returns the stride for a specific operand at a specific dimension.
+         */
+        size_t get_stride(int arg_idx, int dim_idx) const;
     };
 
 } //namespace tensor
