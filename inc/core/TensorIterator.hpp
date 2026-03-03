@@ -35,15 +35,6 @@ namespace tensor
         std::vector<std::vector<size_t>> broadcasted_strides_;
         bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
         
-        
-        // Coalesced shapes is only a vector since coalescing is possible only when shapes are shared
-        // multiple operands will therefore use the same coalesced shape. If this is not possible coalescing is not applied.
-        // Strides can instead be different for each operand even in coalesced ops
-
-        std::vector<size_t>              coalesced_shape_;              
-        std::vector<std::vector<size_t>> coalesced_strides_;
-        bool is_coalesced_ = false;
-
         size_t numel_;                                                  /* Number of elements of the iterator space */
         size_t ndim_;                                                   /* Rank of the iterator space */
 
