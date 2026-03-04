@@ -774,29 +774,7 @@ template <typename Op>
         else if constexpr (Op::iter_kind() == IterationKind::REDUCTION)    merge_decision = compute_merge_decision_reduction_<Op>(shapes, strides);
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL)       merge_decision = compute_merge_decision_matmul_<Op>(shapes, strides);
         else if constexpr (Op::iter_kind() == IterationKind::COPY)         merge_decision = compute_merge_decision_copy_<Op>(shapes, strides);
-
-        // std::cout << "SHAPES=[\n";
-        // for (size_t i = 0; i < shapes.size(); ++i) {
-        //     std::cout << "  [" << i << "]: [";
-        //     for (auto x : shapes[i]) std::cout << x << ", ";
-        //     std::cout << "]\n";
-        // }
-        // std::cout << "]\n";
-
-        // std::cout << "STRIDES=[\n";
-        // for (size_t i = 0; i < strides.size(); ++i) {
-        //     std::cout << "  [" << i << "]: [";
-        //     for (auto x : strides[i]) std::cout << x << ", ";
-        //     std::cout << "]\n";
-        // }
-        // std::cout << "]\n";
         
-        // std::cout << "MERGE DECISION=[";
-        // for (auto x : merge_decision) {
-        //     std::cout << (x ? "true" : "false") << ", ";
-        // }
-        // std::cout << "]" << std::endl;
-
         return merge_decision;
     }
 
@@ -1278,11 +1256,11 @@ template <typename Op>
         );                                                                          \
         template size_t                                                             \
         TensorIterator::compute_ndim_<::tensor::ops::Op>(                           \
-            const std::vector<std::vector<size_t>>& broadcasted_strides                   \
+            const std::vector<std::vector<size_t>>& broadcasted_strides             \
         );                                                                          \
         template size_t                                                             \
         TensorIterator::compute_numel_<::tensor::ops::Op>(                          \
-            const std::vector<std::vector<size_t>>& broadcasted_strides                   \
+            const std::vector<std::vector<size_t>>& broadcasted_strides             \
         );
 
     FOR_EACH_OP(INSTANTIATE_OP)
