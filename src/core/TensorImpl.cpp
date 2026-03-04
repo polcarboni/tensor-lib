@@ -96,8 +96,8 @@ namespace tensor {
             contiguous_(other.contiguous_), requires_grad_(other.requires_grad_) 
     {
         if (other.autograd_meta_)
-            // TODO: might not work (check the AutograMeta struct) 
-            autograd_meta_ = std::make_unique<grad::AutogradMeta>(*other.autograd_meta_);
+            // Placeholder (empty autograd meta), should call the AutogradMeta copy constructor instead.
+            autograd_meta_ = std::make_unique<grad::AutogradMeta>();
     }
 
     TensorImpl& TensorImpl::operator=(const TensorImpl& other)
@@ -248,7 +248,41 @@ namespace tensor {
 
     std::unique_ptr<TensorImpl> TensorImpl::view(std::vector<size_t>& new_shape) const
     {
-        return std::make_unique<TensorImpl>(); //placeholder
+        /**
+         * TODO: add support for shape inferring. Currently only support the use of explicit shapes.
+         * TODO: IMPLEMENTATION DOES NOT BELONG HERE, USE DISPATCHER.
+         * TODO: add check for same shape (just copy the original)
+         */
+
+        if (!is_contiguous()) {
+            throw std::runtime_error("view() called on a non-contiguous tensor. Call contiguous() first.");
+        }
+
+        size_t new_total = 1;
+        for (size_t dim : new_shape) new_total *= dim;
+        if (new_total != total_size_) {
+            throw std::runtime_error("view(): shape is incompatible with the number of elements");
+        }
+
+        auto result = std::make_unique<TensorImpl>(*this);
+        result->shape_ = new_shape;
+        result->strides_ = {};
+        result->refresh_metadata();
+
+        result->autograd_meta_ = nullptr;
+        if (requires_grad_) {
+            // placeholder. Not sure how to handle this.
+            std::make_unique<grad::AutogradMeta>();
+
+            // This is going to be dropped unless backward_view is going to be supported.
+
+            // In order to support that a ops/geometric.hpp file should be created.
+            // And these operations are going to be executed by calling the dispatcher.
+            
+            // This OP has no prob with CUDA (no support of copy), but reshape does.
+        }
+
+        return result;
     }
     
     std::unique_ptr<TensorImpl> TensorImpl::reshape(std::initializer_list<size_t>& new_shape)
