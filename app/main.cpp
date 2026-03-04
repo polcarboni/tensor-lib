@@ -93,13 +93,36 @@ int main()
 
 
 
-    // ====================================== BINARY OPERATION TEST ======================================
-
-    auto lhs = tensor::TensorImpl({3,3}, 4.321);
-    auto rhs = tensor::TensorImpl({3,1}, 5.121);
-
+    // ====================================== BINARY OPERATION CPU TEST ======================================
+    
+    std::cout << "\nADDING OPERATION: operators:" << std::endl;
+    
+    auto lhs = tensor::TensorImpl({3,3,3}, 4.321);
+    auto rhs = tensor::TensorImpl({1,3}, 5.121);
+    
+    std::cout << lhs << std::endl;
+    std::cout << "\n" << rhs << std::endl;
+    
+    std::cout << "\nresult:" << std::endl;
+    
     auto out = tensor::add(lhs, rhs);
     std::cout << out << std::endl;
+
+
+    // ====================================== BINARY OPERATION CUDA TEST ======================================
+    
+    std::cout << "\nADDING OPERATION CUDA: operators:" << std::endl;
+    
+    auto rhs_cuda = tensor::TensorImpl({1,3},   5.121, tensor::ScalarType::Float32, {tensor::DeviceType::CUDA, 0});
+    auto lhs_cuda = tensor::TensorImpl({3,3,3}, 4.321, tensor::ScalarType::Float32, {tensor::DeviceType::CUDA, 0});
+    
+    std::cout << lhs_cuda << std::endl;
+    std::cout << "\n" << rhs_cuda << std::endl;
+    
+    std::cout << "\nresult:" << std::endl;
+    
+    auto out_cuda = tensor::add(lhs_cuda, rhs_cuda);
+    std::cout << out_cuda << std::endl;
 
     return 0;
 }
