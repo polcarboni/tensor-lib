@@ -11,8 +11,6 @@ namespace tensor::ops::kernel {
     {
         auto dtype = iter.get_common_dtype();
 
-        std::cout << "BINARY OP: ";
-
         DISPATCH_ALL_TYPES(dtype, "binary_add", ([&] {
             scalar_t* output    = iter.output_ptr<scalar_t>(0);
             const scalar_t* lhs = iter.input_ptr<scalar_t>(0);
@@ -26,8 +24,6 @@ namespace tensor::ops::kernel {
             const auto& shape = iter.get_shape();
             size_t ndim       = iter.get_ndim();
 
-            std::cout << "ndim=[" << ndim << "],  common_contiguous=[" << iter.get_common_is_contiguous() << "]";
-
             if (iter.get_common_is_contiguous() && ndim == 1) {
                 std::cout << "fast path, " << std::endl;
                 /* Contiguous elements and single dimension coalesced */
@@ -36,21 +32,16 @@ namespace tensor::ops::kernel {
                 }
             } else if (ndim == 1) {
                 /* non contiguous, single dimension */
-                std::cout << "1-dim path, " << std::endl;
                 for (size_t i = 0; i < numel; ++i) {
                     output[i * out_strides[0]] = op(lhs[i * lhs_strides[0]], rhs[i * rhs_strides[0]]);
                 }
             } else {
                 /* General path */
-                std::cout << "general path, ";
-                
                 std::vector<size_t> counter(ndim, 0);
                 size_t lhs_offset = 0;
                 size_t rhs_offset = 0;
                 size_t out_offset = 0;
                 
-                std::cout << "numel=[" << numel << "], " << std::endl;
-
                 for (size_t i = 0; i < numel; ++i) {
                     
                     output[out_offset] = op(lhs[lhs_offset], rhs[rhs_offset]);
