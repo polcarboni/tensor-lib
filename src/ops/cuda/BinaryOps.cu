@@ -108,7 +108,7 @@ namespace tensor::ops::kernel
         DISPATCH_ALL_TYPES(dtype, "binary_cuda_kernel", ([&] {
             scalar_t*       out = iter.output_ptr<scalar_t>(0);
             const scalar_t* lhs = iter.input_ptr<scalar_t>(0);
-            const scalar_t* rhs = iter.input_ptr<scalar_t>(0);
+            const scalar_t* rhs = iter.input_ptr<scalar_t>(1);
 
             const size_t numel = iter.get_numel();
             const size_t ndim = iter.get_ndim();
