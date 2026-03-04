@@ -11,6 +11,17 @@ option(ENABLE_TESTING "Enable unit test building with Catch2" ON)
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
 option(ENABLE_CUDA "Enable NVIDIA CUDA support" ON)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+add_compile_options($<$<CONFIG:Debug>:-g3>
+                    $<$<CONFIG:Debug>:-O0>
+                    $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
+                    $<$<CONFIG:Release>:-O3>)
+
 if(ENABLE_CUDA)
     add_compile_definitions(USE_CUDA)  # Find a proper way
     include(CheckLanguage)
@@ -22,6 +33,10 @@ if(ENABLE_CUDA)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
         set(CMAKE_CUDA_ARCHITECTURES native)
         find_package(CUDAToolkit REQUIRED)
+
+        add_compile_options($<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>
+                            $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-g>
+                            $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Release>>:-O3>)
     else()
         message(WARNING "CUDA compiler not found. Disabling CUDA support.")
         set(ENABLE_CUDA OFF)
