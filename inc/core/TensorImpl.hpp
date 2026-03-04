@@ -121,11 +121,21 @@ namespace tensor
 
         // -------------------------------------------------- GEOMETRIC OPERATIONS --------------------------------------------------
         
-        /* Checks if the strides represent a contiguous representation of data */
+        /* Checks if strides define a contiguous representation of data */
+        bool is_contiguous() const;
         
-        bool is_contiguous() const;        
-        
+        /**
+         * Returns a new TensorImpl sharing the same underlying storage but a different shape.
+         * The provided shape must have the same number of elements as the previous one.
+         * 
+         * Requires the TensorImpl to be contiguous.
+         */
         std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
+
+        /**
+         * Returns a new TensorImpl with the given shape, containing the same data.
+         * If the tensor is contiguous the same storage is used, otherwise a contiguous copy is made first.
+         */
         std::unique_ptr<TensorImpl> reshape(std::initializer_list<size_t>& new_shape);
         
         // Defined for the Iterator automatic casting. The type for the user operation might be different.
