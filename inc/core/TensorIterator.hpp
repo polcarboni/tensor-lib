@@ -46,7 +46,7 @@ namespace tensor
 
         // -------- Reduction operations data members -------- 
 
-        std::optional<std::vector<size_t>> reduction_axes_;
+        std::optional<std::vector<size_t>> reduction_axes_ = std::nullopt;
         bool keepdims_ = false;
 
 
