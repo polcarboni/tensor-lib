@@ -4,6 +4,7 @@
 #include "ops/OpsRegistry.hpp"
 #include <cassert>
 #include <cstddef>
+#include <optional>
 
 
 /**
@@ -303,21 +304,36 @@ namespace tensor {
     }
 
     // -------------------------------------------------------------------------------------------------------------  
-    //                                          BINARY OPERATIONS
+    //                                                  BINARY OPERATIONS
     // -------------------------------------------------------------------------------------------------------------
-
+    
     TensorImpl add(TensorImpl& lhs, TensorImpl& rhs) {
         return ops::dispatch_binary<ops::BinaryAdd>(lhs, rhs);
+    }
+    
+    
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                REDUCTION OPERATIONS
+    // -------------------------------------------------------------------------------------------------------------
+
+    TensorImpl sum(TensorImpl& tensor) {
+        std::optional<std::vector<size_t>> axes = std::nullopt; 
+        bool keepdims = false;
+        return ops::dispatch_reduction<ops::ReduceSum>(tensor, axes, keepdims);
+    }
+
+    TensorImpl sum(TensorImpl& tensor, const std::vector<size_t>& axes, bool keepdims) {
+        return ops::dispatch_reduction<ops::ReduceSum>(tensor, axes, keepdims);
     }
 
 
     /* Explicit instantiations */
 
-    #define INSTANTIATE(T)                                                                              \
-        template T* TensorImpl::data_ptr<T>();                                                          \
-        template const T* TensorImpl::data_ptr<T>() const;                                              \
+    #define INSTANTIATE(T)                                 \
+        template T* TensorImpl::data_ptr<T>();             \
+        template const T* TensorImpl::data_ptr<T>() const; \
         
-    #define INSTANTIATE_OP(T)                                                           \
+    #define INSTANTIATE_OP(T)                                                        \
         template T& TensorImpl::operator()<T>(const std::initializer_list<size_t>&);                    
 
     INSTANTIATE(float)
