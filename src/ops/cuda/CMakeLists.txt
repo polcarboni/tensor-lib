@@ -1,6 +1,7 @@
 add_library(tensor_cuda STATIC
     FillStorageOps.cu
-    BinaryOps.cu)
+    BinaryOps.cu
+    ReductionOps.cu)
 
 target_include_directories(tensor_cuda PUBLIC
     ${CMAKE_SOURCE_DIR}/inc

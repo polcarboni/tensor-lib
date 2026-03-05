@@ -9,7 +9,6 @@
     X(FillRandomUniform)            \
     X(FillRandomNormal)             
 
-
 #include "BinaryOps.hpp"
 #define FOR_EACH_BINARY_OP(X)   \
     X(BinaryAdd)                \
@@ -17,8 +16,12 @@
     X(BinarySub)                \
     X(BinaryExp)                 
 
+#include "ReductionOps.hpp"
+#define FOR_EACH_REDUCTION_OP(X) \
+    X(ReduceSum)
+
 
 #define FOR_EACH_OP(X)          \
     FOR_EACH_FILLSTORAGE_OP(X)  \
-    FOR_EACH_BINARY_OP(X)
-    
+    FOR_EACH_BINARY_OP(X)       \
+    FOR_EACH_REDUCTION_OP(X)

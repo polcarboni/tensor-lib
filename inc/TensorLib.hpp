@@ -10,14 +10,7 @@
 
 #include "ops/FillStorageOps.hpp"
 #include "ops/BinaryOps.hpp"
-// #include "ops/Functors.hpp"
-// #include "ops/TensorIterator.hpp"
-// #include "ops/Broadcasting.hpp"
-// #include "ops/Dispatcher.hpp"
-// #include "ops/Backend.hpp"
-// #include "ops/OpsImpl.hpp"
-// #include "ops/Matmul.hpp"
-// #include "ops/TensorOps.hpp"
+#include "ops/ReductionOps.hpp"
 
 // #include "autograd/Node.hpp"
 // #include "autograd/Edge.hpp"

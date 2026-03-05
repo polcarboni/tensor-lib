@@ -1,6 +1,7 @@
 add_library(tensor_ops STATIC
     FillStorageOps.cpp
-    BinaryOps.cpp)
+    BinaryOps.cpp
+    ReductionOps.cpp)
 
 target_include_directories(tensor_ops PUBLIC
     ${CMAKE_SOURCE_DIR}/inc
