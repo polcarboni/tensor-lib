@@ -290,6 +290,14 @@ namespace tensor
         return os << to_string(tensor);
     }
 
+    // -------------------------------------------- BINARY OPERATIONS --------------------------------------------
+
     TensorImpl add(TensorImpl& lhs, TensorImpl& rhs);
+
+
+    // -------------------------------------------- REDUCTION OPERATIONS --------------------------------------------
+
+    TensorImpl sum(TensorImpl& tensor);
+    TensorImpl sum(TensorImpl& tensor, const std::vector<size_t>& axes, bool keepdims = false);
 
 } // namespace tensor
