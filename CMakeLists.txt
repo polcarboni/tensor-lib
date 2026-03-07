@@ -7,9 +7,10 @@ project(
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)
 
-option(ENABLE_TESTING "Enable unit test building with Catch2" ON)
+option(ENABLE_TESTING    "Enable unit test building with Catch2" ON)
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
-option(ENABLE_CUDA "Enable NVIDIA CUDA support" ON)
+option(ENABLE_CUDA       "Enable NVIDIA CUDA support" ON)
+option(ENABLE_SIMD       "Enable SIMD (AVX2) support" ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
@@ -21,6 +22,31 @@ add_compile_options($<$<CONFIG:Debug>:-g3>
                     $<$<CONFIG:Debug>:-O0>
                     $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
                     $<$<CONFIG:Release>:-O3>)
+
+if (ENABLE_SIMD)
+    include(CheckCXXSourceRuns)
+
+    # Feature check for SIMD compiling
+    check_cxx_source_runs("
+        #include <immintrin.h>
+        int main() {
+            __m256__ a = _mm256_set1_ps(1.0f);
+            __m256__ b = _mm256_add_ps(a, a);
+            return 0;
+        }"
+        HAS_AVX2
+    )
+    unset(CMAKE_REQUIRED_FLAGS)
+
+    if(HAS_AVX2)
+        message(STATUS "AVX2 support detected - SIMD enabled")
+        add_compile_options(-mavx2)
+        add_compile_definitions(USE_AVX2)
+    else()
+        message(WARNING "AVX2 not supported on this machine. Disabling SIMD.")
+        set(ENABLE_SIMD OFF)
+    endif()
+endif()
 
 if(ENABLE_CUDA)
     add_compile_definitions(USE_CUDA)  # Find a proper way
