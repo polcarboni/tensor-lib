@@ -124,5 +124,10 @@ int main()
     auto out_cuda = tensor::add(lhs_cuda, rhs_cuda);
     std::cout << out_cuda << std::endl;
 
+
+    std::vector<size_t> red_axes = {};
+    auto reduced   = tensor::sum(out, red_axes, false);
+    auto reduced_2 = tensor::sum(out);
+
     return 0;
 }
