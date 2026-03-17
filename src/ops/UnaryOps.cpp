@@ -7,6 +7,63 @@
 #include <cstring>
 #include <cmath>
 
+namespace tensor::ops::kernel {
+
+    template <typename Op>
+    void unary_cpu_kernel(TensorIterator& iter, Op op)
+    {
+        auto dtype = iter.get_common_dtype();
+
+        DISPATCH_ALL_TYPES(dtype, "unary_cpu_kernel", [&] {
+            scalar_t* output    = iter.output_ptr<scalar_t>(0);
+            const scalar_t* src = iter.input_ptr<scalar_t>(0);  // single input
+
+            const auto& src_strides = iter.get_strides(0);
+            const auto& out_strides = iter.get_strides(1);      // output is index 1, not 2
+
+            const auto& is_broadcasted = iter.get_is_broadcasted();
+            size_t numel      = iter.get_numel();
+            const auto& shape = iter.get_shape();
+            size_t ndim       = iter.get_ndim();
+
+            if (iter.get_common_is_contiguous() && ndim == 1 && !is_broadcasted) {
+                /* Contiguous elements and single dimension coalesced */
+                for (size_t i = 0; i < numel; ++i) {
+                    output[i] = op(src[i]);
+                }
+            } else if (ndim == 1) {
+                /* Non-contiguous, single dimension */
+                for (size_t i = 0; i < numel; ++i) {
+                    output[i * out_strides[0]] = op(src[i * src_strides[0]]);
+                }
+            } else {
+                /* General path */
+                std::vector<size_t> counter(ndim, 0);
+                size_t src_offset = 0;
+                size_t out_offset = 0;
+
+                for (size_t i = 0; i < numel; ++i) {
+
+                    output[out_offset] = op(src[src_offset]);
+
+                    for (int d = static_cast<int>(ndim) - 1; d >= 0; --d) {
+                        ++counter[d];
+                        src_offset += src_strides[d];
+                        out_offset += out_strides[d];
+
+                        if (counter[d] < shape[d]) break;
+
+                        /* Reset offset and counter when the dimension is computed */
+                        counter[d] = 0;
+                        src_offset -= shape[d] * src_strides[d];
+                        out_offset -= shape[d] * out_strides[d];
+                    }
+                }
+            }
+        });
+    }
+
+} // namespace tensor::ops::kernel
 
 namespace tensor::ops {
     
