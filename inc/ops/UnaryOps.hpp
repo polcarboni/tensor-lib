@@ -65,4 +65,10 @@ namespace tensor::ops
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
+
+    /* Logarithm */
+    struct UnaryLog : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
 } // namespace tensor::ops

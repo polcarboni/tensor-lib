@@ -188,4 +188,26 @@ namespace tensor::ops
         // PLACEHOLDER 
     }
 
+    void UnaryNeg::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::All>(iter, [] __device__ (auto x) {    
+            if constexpr(std::is_same_v<decltype(x), bool>) {
+                return !x;
+            } else {
+                return -x;
+            }
+        }, stream);
+    }
+
+    void UnaryExp::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::Float>(iter, [] __device__(auto x) {
+            return exp(x);
+        }, stream);
+    }
+
+    void UnaryLog::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::Float>(iter, [] __device__(auto x) {
+            return log(x);
+        }, stream);
+    }
+
 } // namespace tensor::ops

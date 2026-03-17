@@ -135,4 +135,33 @@ namespace tensor::ops {
             }
         });
     }
+
+    void UnaryNeg::cpu(TensorIterator& iter)
+    {
+        if (iter.get_common_dtype() == ScalarType::Bool) {
+            kernel::unary_cpu_kernel(iter, [](auto x) { return !x; });
+        } else {
+            kernel::unary_cpu_kernel(iter, [](auto x) { return -x; });
+        }
+    }
+
+    void UnaryExp::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        DISPATCH_FLOAT_TYPES(dtype, "unary_exp", [&] {
+            kernel::unary_cpu_kernel(iter, [](scalar_t x) { return std::exp(x); });
+        });
+    }
+
+    
+    void UnaryLog::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        DISPATCH_FLOAT_TYPES(dtype, "unary_log", [&] {
+            kernel::unary_cpu_kernel(iter, [](scalar_t x) {
+                return std::log(x);
+            });
+        });
+    }
+
 } // namespace tensor::ops
