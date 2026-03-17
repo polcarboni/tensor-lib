@@ -91,7 +91,8 @@ namespace tensor
 
         // -------------------------------------------------- INDEXERS/ACCESSORS --------------------------------------------------
 
-        // Data accessor helper
+        // Data accessor helpers
+        
         template <typename T>
         T* data_ptr();
 
@@ -102,11 +103,18 @@ namespace tensor
         template <typename T>
         const T* data_ptr() const;
 
-        // TODO: provide const version
+        // ---------------------------------
+        
+        template <typename T>
+        T& operator()(const std::vector<size_t>& indices);
+        
         template <typename T>
         T& operator()(const std::initializer_list<size_t>& indices);
 
-        std::shared_ptr<TensorImpl> operator[](size_t index);
+        template <typename T, typename... Indices>
+        T& operator()(Indices... indices);
+
+        TensorImpl operator[](size_t index);
 
 
         // -------------------------------------------------- FILLING OPERATIONS --------------------------------------------------

@@ -184,14 +184,43 @@ namespace tensor {
     template <typename T>
     T& TensorImpl::operator()(const std::initializer_list<size_t>& indices)
     {
+        if (get_scalar_type<T>() != get_dtype())
+            throw std::runtime_error("operator(): type mismatch.");
         if (indices.size() != shape_.size())
             throw std::runtime_error("operator(): Index dimension mismatch");
 
         size_t idx = get_physical_offset(indices);
-        return static_cast<T*>(storage_->data())[idx];
+        return data_ptr<T>()[idx];
     }
 
-    std::shared_ptr<TensorImpl> TensorImpl::operator[](size_t index)
+    template <typename T>
+    T& TensorImpl::operator()(const std::vector<size_t>& indices)
+    {
+        if (get_scalar_type<T>() != get_dtype())
+            throw std::runtime_error("operator(): type mismatch.");
+        if (indices.size() != shape_.size())
+            throw std::runtime_error("operator(): Index dimension mismatch");
+
+        size_t idx = get_physical_offset(indices);
+        return data_ptr<T>()[idx];
+    }
+
+    // TODO: consider moving this to header (inline) to avoid the multiple explicit insantiations.
+    template <typename T, typename... Indices>
+    T& TensorImpl::operator()(Indices... indices)
+    {
+        if (get_scalar_type<T>() != get_dtype())
+            throw std::runtime_error("operator(): Type mismatch");
+
+        std::initializer_list<size_t> idx_list = {static_cast<size_t>(indices)...};
+        if (idx_list.size() != shape_.size())
+            throw std::runtime_error("operator(): Index dimension mismatch");
+
+        size_t idx = get_physical_offset(idx_list);
+        return data_ptr<T>()[idx];
+    }
+
+    TensorImpl TensorImpl::operator[](size_t index)
     {
         if (shape_.empty()) {
             throw std::runtime_error("operator[]: cannot index a 0-dim tensor.");
@@ -202,9 +231,9 @@ namespace tensor {
         }
 
         // INCOMPLETE
-        return std::make_shared<TensorImpl>();  // placeholder return
+        throw std::runtime_error("NOT IMPLEMENTED");
+        return TensorImpl();  // placeholder return
     }
-
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                          FILLING OPERATIONS
@@ -334,8 +363,14 @@ namespace tensor {
         template const T* TensorImpl::data_ptr<T>() const; \
         
     #define INSTANTIATE_OP(T)                                                        \
-        template T& TensorImpl::operator()<T>(const std::initializer_list<size_t>&);                    
+        template T& TensorImpl::operator()<T>(const std::initializer_list<size_t>&); \
+        template T& TensorImpl::operator()<T>(const std::vector<size_t>&);           \
+        template T& TensorImpl::operator()<T, size_t>(size_t);                       \
+        template T& TensorImpl::operator()<T, size_t, size_t>(size_t, size_t);       \
+        template T& TensorImpl::operator()<T, size_t, size_t, size_t>(size_t, size_t, size_t); \
+        template T& TensorImpl::operator()<T, size_t, size_t, size_t, size_t>(size_t, size_t, size_t, size_t);
 
+    
     INSTANTIATE(float)
     INSTANTIATE(double)
     INSTANTIATE(int32_t)
