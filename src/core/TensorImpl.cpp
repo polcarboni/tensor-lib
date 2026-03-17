@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <optional>
+#include <random>
 
 
 /**
