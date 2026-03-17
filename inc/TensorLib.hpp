@@ -11,6 +11,7 @@
 #include "ops/FillStorageOps.hpp"
 #include "ops/BinaryOps.hpp"
 #include "ops/ReductionOps.hpp"
+#include "ops/UnaryOps.hpp"
 
 // #include "autograd/Node.hpp"
 // #include "autograd/Edge.hpp"
