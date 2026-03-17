@@ -32,11 +32,6 @@ namespace tensor::ops
         static void cpu(TensorIterator& iter, double value);
         static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double value = 0);
     };
-    
-    struct FillBuffer : FillOpBase  {
-        static void cpu(TensorIterator& iter, const double* src);
-        static void cuda(TensorIterator& iter, cudaStream_t stream, const double* src);
-    };  
 
     struct FillArange : FillOpBase  {
         static void cpu(TensorIterator& iter, double start = 0.0, double step = 1.0);
