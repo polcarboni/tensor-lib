@@ -96,7 +96,19 @@ namespace tensor
                             + ": operation requires a floating-point tensor (Float32 or Float64)");                 \
             }                                                                                                       \
         } ()
+
     
+    // --------------------------------- COMPARISON OPERATOR --------------------------------- 
+
+    inline constexpr bool operator<(ScalarType a, ScalarType b)
+    {
+        return static_cast<int>(a) < static_cast<int>(b);
+    }
+    
+    inline constexpr bool operator>(ScalarType a, ScalarType b)  { return b < a;  }
+    inline constexpr bool operator<=(ScalarType a, ScalarType b) { return !(a > b); }
+    inline constexpr bool operator>=(ScalarType a, ScalarType b) { return !(a < b); }
+
 
     // --------------------------------- DEVICE TYPE --------------------------------- 
 
