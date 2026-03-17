@@ -10,6 +10,8 @@ target_include_directories(tensor_cuda PUBLIC
 
 set_target_properties(tensor_cuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    CUDA_ARCHITECTURES native
     POSITION_INDEPENDENT_CODE ON)
 
 target_compile_options(tensor_cuda PRIVATE
