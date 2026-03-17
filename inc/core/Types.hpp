@@ -45,6 +45,7 @@ namespace tensor
             case ScalarType::Int64:   return "Int64";
             case ScalarType::Int32:   return "Int32";
             case ScalarType::Bool:    return "Bool";
+            case ScalarType::EMPTY:   return "EMPTY";
             default: throw std::invalid_argument("Unsupported scalar type");
         }
     }
@@ -72,22 +73,6 @@ namespace tensor
         }
     }
 
-    /* This version return the values but for the moment I do not need it (aving thi because I will forget about this)
-    // //  DISPATCHER MACRO
-    // #define DISPATCH_ALL_TYPES(TYPE, NAME, ...) \
-    //     [&] { \
-    //         switch(TYPE) { \
-    //             case ScalarType::Float32: {using scalar_t = float; return __VA_ARGS__(); break; } \
-    //             case ScalarType::Float64: {using scalar_t = double; return __VA_ARGS__(); break; } \
-    //             case ScalarType::Int32: {using scalar_t = int32_t; return __VA_ARGS__(); break; } \
-    //             case ScalarType::Int64: {using scalar_t = int64_t; return __VA_ARGS__(); break; } \
-    //             case ScalarType::Bool: {using scalar_t = bool; return __VA_ARGS__(); break; } \
-    //             default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE)); \
-    //             } \
-    //         } ()
-    */
-
-    //  DISPATCHER MACRO
     #define DISPATCH_ALL_TYPES(TYPE, NAME, ...)                                                                     \
         [&] {                                                                                                       \
             switch(TYPE) {                                                                                          \
