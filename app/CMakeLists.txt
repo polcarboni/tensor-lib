@@ -1,14 +1,14 @@
 add_executable(main main.cpp)
-
 target_link_libraries(main PRIVATE tensor_lib)
-
-if(ENABLE_CUDA)    
-    target_link_libraries(main PRIVATE CUDA::cudart)
-    set_target_properties(main PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_ARCHITECTURES native)
-endif()
-
 target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/inc)
-
 install(TARGETS main)
+
+add_executable(tensor_basic_cpu tensor_basic_cpu.cpp)
+target_link_libraries(tensor_basic_cpu PRIVATE tensor_lib)
+target_include_directories(tensor_basic_cpu PRIVATE ${CMAKE_SOURCE_DIR}/inc)
+install(TARGETS tensor_basic_cpu)
+
+add_executable(tensor_basic_cuda tensor_basic_cuda.cpp)
+target_link_libraries(tensor_basic_cuda PRIVATE tensor_lib)
+target_include_directories(tensor_basic_cuda PRIVATE ${CMAKE_SOURCE_DIR}/inc)
+install(TARGETS tensor_basic_cuda)
