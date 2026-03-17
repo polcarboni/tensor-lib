@@ -21,6 +21,11 @@ namespace tensor::ops
         static constexpr IterationKind iter_kind() { return iter_kind_; }
         static constexpr Direction get_direction() { return Dir; }        
     };
+    
+    struct UnaryCastOp : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
 
     /* Negation */
     struct UnaryNeg : UnaryOpBase<Direction::FORWARD> {
@@ -54,5 +59,4 @@ namespace tensor::ops
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
-
 } // namespace tensor::ops
