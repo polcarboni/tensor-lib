@@ -28,11 +28,8 @@ namespace tensor {
 
     void Storage::copy_data_from(const void* src) {
         
+        // Empty/non present source
         if(!src || size_bytes_ == 0 || !data_) return;
-
-        if (!data_) {
-            data_ = get_allocator(device_.type)->allocate(size_bytes_);
-        }
 
         DeviceType src_type = DeviceType::CPU;
 
