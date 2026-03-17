@@ -43,4 +43,8 @@ namespace tensor::ops
         });
     }
 
+    void ContiguousOp::cuda(TensorIterator& iter, cudaStream_t stream) {
+        // PLACEHOLDER 
+    }
+
 } // namespace tensor::ops

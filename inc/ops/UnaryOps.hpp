@@ -33,6 +33,12 @@ namespace tensor::ops
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
 
+    /* Make the tensor contiguous*/
+    struct ContiguousOp : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
     struct UnaryNegBackward : UnaryOpBase<Direction::BACKWARD> {
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
