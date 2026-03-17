@@ -100,7 +100,7 @@ namespace tensor
 
     // --------------------------------- DEVICE TYPE --------------------------------- 
 
-    enum class DeviceType { CPU, CUDA };
+    enum class DeviceType { CPU, CUDA, UNKNOWN };
     
     inline std::string to_string(DeviceType type)
     {
