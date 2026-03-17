@@ -309,11 +309,10 @@ namespace tensor {
     }
 
 
-    std::unique_ptr<TensorImpl> TensorImpl::view(std::vector<size_t>& new_shape) const
+    TensorImpl TensorImpl::view(const std::vector<size_t>& new_shape) const
     {
         /**
          * TODO: add support for shape inferring. Currently only support the use of explicit shapes.
-         * TODO: IMPLEMENTATION DOES NOT BELONG HERE, USE DISPATCHER.
          * TODO: add check for same shape (just copy the original)
          */
 
@@ -327,44 +326,75 @@ namespace tensor {
             throw std::runtime_error("view(): shape is incompatible with the number of elements");
         }
 
-        auto result = std::make_unique<TensorImpl>(*this);
-        result->shape_ = new_shape;
-        result->strides_ = {};
-        result->refresh_metadata();
+        auto result = TensorImpl(*this);
+        result.shape_ = new_shape;
+        result.strides_ = {};
+        result.refresh_metadata();
 
-        result->autograd_meta_ = nullptr;
-        if (requires_grad_) {
-            // placeholder. Not sure how to handle this.
-            std::make_unique<grad::AutogradMeta>();
-
-            // This is going to be dropped unless backward_view is going to be supported.
-
-            // In order to support that a ops/geometric.hpp file should be created.
-            // And these operations are going to be executed by calling the dispatcher.
-            
-            // This OP has no prob with CUDA (no support of copy), but reshape does.
-        }
+        result.autograd_meta_ = nullptr;
+        
+        // Autograd still not implemented
+        // if (requires_grad_) {
+        //     // std::make_unique<grad::AutogradMeta>();
+        // }
 
         return result;
     }
-    
-    std::unique_ptr<TensorImpl> TensorImpl::reshape(std::initializer_list<size_t>& new_shape)
-    {
-        return std::make_unique<TensorImpl>(); //placeholder
-    }
 
-    std::unique_ptr<TensorImpl> TensorImpl::to_dtype(ScalarType target_dtype) const
+
+    TensorImpl TensorImpl::contiguous() const
     {
-        if (this->dtype_ == target_dtype) {
-            return std::make_unique<TensorImpl>(*this);
+        if (this->is_contiguous()) {
+            return TensorImpl(*this);
         }
 
-        // TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(*this, target_dtype);
-        // return std::make_shared<TensorImpl>(std::move(result));
-        
-        return std::make_unique<TensorImpl>();  // placeholder
+        return ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
     }
 
+
+    void TensorImpl::contiguous_inplace()
+    {
+        if (this->is_contiguous()) {
+            return;
+        }
+
+        // Does not use the inplace to avoid race condition when rearranging the data
+        TensorImpl result = ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
+        *this = std::move(result);
+    }
+    
+    TensorImpl TensorImpl::reshape(const std::vector<size_t>& new_shape) const
+    {
+        if (this->is_contiguous()) {
+            TensorImpl view = *this;
+            view.shape_ = new_shape;
+            view.strides_.clear();
+            view.refresh_metadata();
+            return view;
+        }
+        return this->contiguous().reshape(new_shape);
+    }
+
+    void TensorImpl::reshape_inplace(const std::vector<size_t>& new_shape)
+    {
+        if (!this->is_contiguous()) {
+            contiguous_inplace();
+        } 
+        shape_ = new_shape;
+        refresh_metadata();
+    }
+
+    TensorImpl TensorImpl::to_dtype(ScalarType target_dtype) const
+    {
+        if (this->dtype_ == target_dtype) {
+            return TensorImpl(*this);
+        }
+
+        TensorImpl result = ops::dispatch_unary_casting<ops::UnaryCastOp>(const_cast<TensorImpl&>(*this), target_dtype);
+        return TensorImpl(std::move(result));
+    }
+
+    
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  BINARY OPERATIONS
     // -------------------------------------------------------------------------------------------------------------

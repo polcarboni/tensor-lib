@@ -141,6 +141,16 @@ namespace tensor
         
         /* Checks if strides define a contiguous representation of data */
         bool is_contiguous() const;
+
+        /**
+         * Returns a contiguous version of the tensorImpl by changing the order of the elements in the storage.
+         */
+        TensorImpl contiguous() const;
+
+        /**
+         * Rearrange the storage of the TensorImpl in order to make it contiguous.
+         */
+        void contiguous_inplace();
         
         /**
          * Returns a new TensorImpl sharing the same underlying storage but a different shape.
@@ -148,18 +158,30 @@ namespace tensor
          * 
          * Requires the TensorImpl to be contiguous.
          */
-        std::unique_ptr<TensorImpl> view(std::vector<size_t>& new_shape) const;
+        TensorImpl view(const std::vector<size_t>& new_shape) const;
 
         /**
          * Returns a new TensorImpl with the given shape, containing the same data.
          * If the tensor is contiguous the same storage is used, otherwise a contiguous copy is made first.
          */
-        std::unique_ptr<TensorImpl> reshape(std::initializer_list<size_t>& new_shape);
+        TensorImpl reshape(const std::vector<size_t>& new_shape) const;
+
+        /**
+         * Change the shape of the tensorImpl inplace
+         */
+        void reshape_inplace(const std::vector<size_t>& new_shape);
         
-        // Defined for the Iterator automatic casting. The type for the user operation might be different.
-        // TODO: in this case. Move this to private and declare it as Iterator friend.
-        std::unique_ptr<TensorImpl> to_dtype(ScalarType target_dtype) const;
-        
+        /**
+         * Return a new TensorImpl values converted in a different data type for its scalar elements.
+         */
+        TensorImpl to_dtype(ScalarType target_dtype) const;
+
+
+        // TODO: implement transpose
+
+        // TensorImpl transpose(size_t dim0 = 0, size_t dim1 = 1) const;
+        // void transpose_inplace(size_t dim0 = 0, size_t dim1 = 1);
+
 
         // -------------------------------------------------- AUTOGRAD METHODS --------------------------------------------------
         
