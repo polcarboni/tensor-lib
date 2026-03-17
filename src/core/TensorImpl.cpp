@@ -244,6 +244,39 @@ namespace tensor {
         ops::dispatch_unary_inplace<ops::FillConst>(*this, value);
     }
 
+    void TensorImpl::fill_arange(double start, double step)
+    {
+        ops::dispatch_unary_inplace<ops::FillArange>(*this, start, step);
+    }
+
+    void TensorImpl::fill_linspace(double start, double end)
+    {
+        ops::dispatch_unary_inplace<ops::FillLinspace>(*this, start, end);
+    }
+
+    void TensorImpl::fill_rand(double low, double high, uint64_t seed)
+    {
+        ops::dispatch_unary_inplace<ops::FillRandomUniform>(*this, low, high, seed);
+    }
+    
+    void TensorImpl::fill_rand_normal(double mean, double stddev, uint64_t seed)
+    {
+        ops::dispatch_unary_inplace<ops::FillRandomNormal>(*this, mean, stddev, seed);
+    }
+
+    void TensorImpl::fill_eye() {
+
+        if (get_shape().size() != 2) {
+            throw std::runtime_error("fill_eye(): can be used only on 2D tensors");
+        }
+
+        if (shape_[0] != shape_[1]) {
+            throw std::runtime_error("fill_eye(): tried to fill a non-squared 2D tensor");
+        }
+
+        ops::dispatch_unary_inplace<ops::FillEye>(*this, shape_[0]);
+    }
+
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                          GEOMETRIC OPERATIONS

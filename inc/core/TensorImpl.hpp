@@ -126,6 +126,16 @@ namespace tensor
         // template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
         void fill_const(double value);
 
+        void fill_arange(double start = 0.0, double step = 1.0);
+        
+        void fill_linspace(double start = 0.0, double end = 1.0);
+        
+        void fill_rand(double low = 0.0, double high = 1.0, uint64_t seed = 42);        
+        
+        void fill_rand_normal(double mean = 0.0, double stddev = 1.0, uint64_t seed = 42);
+
+        void fill_eye();
+
 
         // -------------------------------------------------- GEOMETRIC OPERATIONS --------------------------------------------------
         
