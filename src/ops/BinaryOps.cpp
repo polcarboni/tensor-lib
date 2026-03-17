@@ -3,6 +3,7 @@
 #include "ops/BinaryOps.hpp"
 #include <cstdint>
 #include <cassert>
+#include <cmath>
 
 namespace tensor::ops::kernel {
 
@@ -11,7 +12,7 @@ namespace tensor::ops::kernel {
     {
         auto dtype = iter.get_common_dtype();
 
-        DISPATCH_ALL_TYPES(dtype, "binary_add", ([&] {
+        DISPATCH_ALL_TYPES(dtype, "binary_cpu_kernel", ([&] {
             scalar_t* output    = iter.output_ptr<scalar_t>(0);
             const scalar_t* lhs = iter.input_ptr<scalar_t>(0);
             const scalar_t* rhs = iter.input_ptr<scalar_t>(1);
@@ -20,12 +21,12 @@ namespace tensor::ops::kernel {
             const auto& rhs_strides = iter.get_strides(1);
             const auto& out_strides = iter.get_strides(2);
             
+            const auto& is_broadcasted = iter.get_is_broadcasted();
             size_t numel      = iter.get_numel();
             const auto& shape = iter.get_shape();
             size_t ndim       = iter.get_ndim();
 
-            if (iter.get_common_is_contiguous() && ndim == 1) {
-                std::cout << "fast path, " << std::endl;
+            if (iter.get_common_is_contiguous() && ndim == 1 && !is_broadcasted) {
                 /* Contiguous elements and single dimension coalesced */
                 for (size_t i = 0; i < numel; ++i) {
                     output[i] = op(lhs[i], rhs[i]);
@@ -75,10 +76,16 @@ namespace tensor::ops
         kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return a + b; });
     }
     
-    void BinaryAddBackward::cpu(TensorIterator& iter) {}
+    void BinaryAddBackward::cpu(TensorIterator& iter) {
+        // PLACEHOLDER
+    }
     
-    void BinarySub::cpu(TensorIterator& iter) {}
+    void BinarySub::cpu(TensorIterator& iter) {
+        kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return a - b; });
+    }
     
-    void BinaryExp::cpu(TensorIterator& iter) {}
-
+    void BinaryExp::cpu(TensorIterator& iter) {
+        kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return std::pow(a,b); });
+    }
+    
 } // namespace tensor::ops

@@ -112,12 +112,13 @@ namespace tensor::ops::kernel
 
             const size_t numel = iter.get_numel();
             const size_t ndim = iter.get_ndim();
-            
             const auto& shape = iter.get_shape();
+
             const auto& lhs_strides = iter.get_strides(0);
             const auto& rhs_strides = iter.get_strides(1);
             const auto& out_strides = iter.get_strides(2);
 
+            const bool is_broadcasted = iter.get_is_broadcasted();
             /**
              * TODO: is required some check on the size of input being multiple or not
              *       of the GRID size? Padding of threads?
@@ -125,7 +126,7 @@ namespace tensor::ops::kernel
             constexpr int BLOCK = 256;
             const int GRID = static_cast<int>((numel + BLOCK - 1) / BLOCK); 
 
-            if (iter.get_common_is_contiguous() && ndim == 1) {
+            if (iter.get_common_is_contiguous() && ndim == 1 && !is_broadcasted) {
                 /* Fully contiguous and single dimension (coalesced) path */
                 binary_cuda_kernel_impl_contiguous<scalar_t><<<GRID, BLOCK, 0, stream>>>(out, lhs, rhs, numel, op);
             }
@@ -195,32 +196,22 @@ namespace tensor::ops::kernel
 } // namespace tensor::ops::kernel
 
 namespace tensor::ops
-{
-    // /**
-    //  * Kernel signatures are provided by LLM: they might need to change the args.
-    //  */
-
-    // template <typename T>
-    // __global__ void BinaryAddKernel(T* output, const T* lhs, const T* rhs, size_t n) { }
-    
-    // template <typename T>
-    // __global__ void BinaryAddBackwardKernel(T* grad_lhs, T* grad_rhs, const T* grad_output, size_t n) { }
-    
-    // template <typename T>
-    // __global__ void BinarySubKernel(T* output, const T* lhs, const T* rhs, size_t n) { }
-    
-    // template <typename T>
-    // __global__ void BinaryExpKernel(T* output, const T* lhs, const T* rhs, size_t n) { }
-    
+{    
 
     void BinaryAdd::cuda(TensorIterator& iter, cudaStream_t stream) {
         kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return a + b; }, stream);
     }
-    
-    void BinaryAddBackward::cuda(TensorIterator& iter, cudaStream_t stream) { }
-    
-    void BinarySub::cuda(TensorIterator& iter, cudaStream_t stream) { }
-    
-    void BinaryExp::cuda(TensorIterator& iter, cudaStream_t stream) { }
+
+    void BinaryAddBackward::cuda(TensorIterator& iter, cudaStream_t stream) {
+        // PLACEHOLDER
+    }
+
+    void BinarySub::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return a - b; }, stream);
+    }
+
+    void BinaryExp::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return pow(a, b); }, stream);
+    }
 
 } // namespace tensor::ops
