@@ -73,6 +73,8 @@ namespace tensor
         }
     }
 
+    // ---------------------------------------------- DISPATCHER MACROS ----------------------------------------------
+
     #define DISPATCH_ALL_TYPES(TYPE, NAME, ...)                                                                     \
         [&] {                                                                                                       \
             switch(TYPE) {                                                                                          \
@@ -85,6 +87,16 @@ namespace tensor
                 }                                                                                                   \
             } ()
 
+    #define DISPATCH_FLOAT_TYPES(TYPE, NAME, ...)                                                                   \
+        [&] {                                                                                                       \
+            switch(TYPE) {                                                                                          \
+                case ScalarType::Float32: { using scalar_t = float;  __VA_ARGS__(); break; }                        \
+                case ScalarType::Float64: { using scalar_t = double; __VA_ARGS__(); break; }                        \
+                default: throw std::runtime_error(std::string(NAME) + " not implemented for " + to_string(TYPE)     \
+                            + ": operation requires a floating-point tensor (Float32 or Float64)");                 \
+            }                                                                                                       \
+        } ()
+    
 
     // --------------------------------- DEVICE TYPE --------------------------------- 
 
