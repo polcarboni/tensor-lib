@@ -2,6 +2,7 @@
 #include "core/TensorIterator.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <random>
 
 // Avoids inclusion of CUDA headers
 typedef struct CUstream_st* cudaStream_t;
@@ -35,28 +36,31 @@ namespace tensor::ops
     struct FillBuffer : FillOpBase  {
         static void cpu(TensorIterator& iter, const double* src);
         static void cuda(TensorIterator& iter, cudaStream_t stream, const double* src);
-    };
+    };  
 
-    // TODO-fix: one of these two have an error in the declaration (cannot be both with start and step,
-    // one of them must use start and end).
     struct FillArange : FillOpBase  {
-        static void cpu(TensorIterator& iter, double start, double step);
+        static void cpu(TensorIterator& iter, double start = 0.0, double step = 1.0);
         static void cuda(TensorIterator& iter, cudaStream_t stream, double start, double step);
     };
 
     struct FillLinspace : FillOpBase  {
-        static void cpu(TensorIterator& iter, double start, double step);
-        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double start = 0, double step = 1);
+        static void cpu(TensorIterator& iter, double start = 0.0, double end = 1.0);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double start = 0.0, double end = 1.0);
     };
 
     struct FillRandomUniform : FillOpBase  {
-        static void cpu(TensorIterator& iter, double low = 0, double high = 1, uint64_t seed = 0);
-        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double low = 0, double high = 1, uint64_t seed = 0);
+        static void cpu(TensorIterator& iter, double low = 0.0, double high = 1.0, uint64_t seed = 42);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double low = 0.0, double high = 1.0, uint64_t seed = 0);
     };
 
     struct FillRandomNormal : FillOpBase  {
-        static void cpu(TensorIterator& iter, double mean = 0, double stddev = 1, uint64_t seed = 0);
-        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double mean = 0, double stddev = 1, uint64_t seed = 0);
+        static void cpu(TensorIterator& iter, double mean = 0.0, double stddev = 1.0, uint64_t seed = 42);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, double mean = 0.0, double stddev = 1.0, uint64_t seed = 0);
+    };
+
+    struct FillEye : FillOpBase  {
+        static void cpu(TensorIterator& iter, size_t size = 1);
+        static void cuda(TensorIterator& iter, cudaStream_t stream = nullptr, size_t size = 1);
     };
 
 } // namespace tensor::ops
