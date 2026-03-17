@@ -210,4 +210,29 @@ namespace tensor::ops
         }, stream);
     }
 
+    // ----------------------- ACTIVATION FUNCTIONS ----------------------- 
+
+    void UnarySigmoid::cuda(TensorIterator& iter, cudaStream_t stream) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::Float>(iter, [] __device__ (auto x) {
+            using T = decltype(x);
+            return T(1) / (T(1) + exp(-x));
+        }, stream);
+    }
+
+    void UnaryTanh::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::All>(iter, [] __device__ (auto x) {
+            using T = decltype(x);
+            return x > T(0) ? x : T(0);
+        }, stream);
+    }
+
+    void UnaryRelu::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::All>(iter, [] __device__ (auto x) {
+            using T = decltype(x);
+            return x > T(0) ? x : T(0);
+        }, stream);
+    }
+
 } // namespace tensor::ops

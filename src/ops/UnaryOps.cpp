@@ -152,7 +152,6 @@ namespace tensor::ops {
             kernel::unary_cpu_kernel(iter, [](scalar_t x) { return std::exp(x); });
         });
     }
-
     
     void UnaryLog::cpu(TensorIterator& iter) {
         ScalarType dtype = iter.get_common_dtype();
@@ -160,6 +159,38 @@ namespace tensor::ops {
         DISPATCH_FLOAT_TYPES(dtype, "unary_log", [&] {
             kernel::unary_cpu_kernel(iter, [](scalar_t x) {
                 return std::log(x);
+            });
+        });
+    }
+
+    // ----------------------- ACTIVATION FUNCTIONS ----------------------- 
+
+    void UnarySigmoid::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        DISPATCH_FLOAT_TYPES(dtype, "unary_sigmoid", [&] {
+            kernel::unary_cpu_kernel(iter, [](scalar_t x) {
+                return static_cast<scalar_t>(1) / (static_cast<scalar_t>(1) + std::exp(-x));
+            });
+        });
+    }
+
+    void UnaryTanh::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        DISPATCH_FLOAT_TYPES(dtype, "unary_tanh", [&] {
+            kernel::unary_cpu_kernel(iter, [](scalar_t x) {
+                return std::tanh(x);
+            });
+        });
+    }
+
+    void UnaryRelu::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+
+        DISPATCH_FLOAT_TYPES(dtype, "unary_relu", [&] {
+            kernel::unary_cpu_kernel(iter, [](scalar_t x) {
+                return x > static_cast<scalar_t>(0) ? x : static_cast<scalar_t>(0);
             });
         });
     }

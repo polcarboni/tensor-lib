@@ -71,4 +71,22 @@ namespace tensor::ops
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
+
+    // ----------------------- ACTIVATION FUNCTIONS ----------------------- 
+
+    struct UnarySigmoid : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
+    struct UnaryTanh : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
+    struct UnaryRelu : UnaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
 } // namespace tensor::ops
