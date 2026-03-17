@@ -31,7 +31,7 @@ namespace tensor
   
         // ------------------------------------------- ACCESSORS --------------------------------------------
         
-        void* data() const;
+        void*  data() const;
         size_t nbytes() const;
         Device device() const;
 

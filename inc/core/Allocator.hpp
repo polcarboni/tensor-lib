@@ -7,8 +7,8 @@ namespace tensor {
     class Allocator {
     public:
         virtual void* allocate(size_t num_bytes) = 0;
-        virtual void deallocate(void* ptr) noexcept = 0;
-        virtual ~Allocator() = default;
+        virtual void  deallocate(void* ptr) noexcept = 0;
+        virtual       ~Allocator() = default;
     };
 
     /* CPU allocator: allows SIMD alignment */
