@@ -16,10 +16,10 @@ namespace tensor::ops
 
     public:
         static constexpr bool supports_broadcasting() { return supports_broadcasting_; }
-        static constexpr int num_inputs() { return num_inputs_; }
-        static constexpr int num_outputs() { return num_outputs_; }
-        static constexpr IterationKind iter_kind() { return iter_kind_; }
-        static constexpr Direction get_direction() { return Dir; }
+        static constexpr int num_inputs()             { return num_inputs_; }
+        static constexpr int num_outputs()            { return num_outputs_; }
+        static constexpr IterationKind iter_kind()    { return iter_kind_; }
+        static constexpr Direction get_direction()    { return Dir; }
     };
 
 
