@@ -8,17 +8,13 @@
 
 namespace tensor
 {
+    
+    class Node;
+    
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  TENSOR CLASS
     // ------------------------------------------------------------------------------------------------------------- 
-
-    // class TensorImpl;
-    class Node;
-
-    /*
-        TENSOR CLASS: wrapper of the TensorImpl class to be used as public API for the tensor library
-        */
-
+    
     class Tensor
     {
     private:
