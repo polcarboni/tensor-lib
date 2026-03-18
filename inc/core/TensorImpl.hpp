@@ -197,6 +197,29 @@ namespace tensor
         bool is_leaf() const;
 
         TensorImpl sum(const TensorImpl& lhs, const TensorImpl& rhs);
+
+
+        // -------------------------------------------------- UNARY OPERATIONS --------------------------------------------------
+
+        TensorImpl neg() const;
+        TensorImpl abs() const;
+        TensorImpl exp() const;
+        TensorImpl log() const;
+        
+        TensorImpl sigmoid() const;
+        TensorImpl tanh() const;
+        TensorImpl relu() const;
+
+
+        void neg_inplace();
+        void abs_inplace();
+        void exp_inplace();
+        void log_inplace();
+        
+        void sigmoid_inplace();
+        void tanh_inplace();
+        void relu_inplace();
+
     };
 
 

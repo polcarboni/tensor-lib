@@ -395,7 +395,68 @@ namespace tensor {
         return TensorImpl(std::move(result));
     }
 
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                                  UNARY OPERATIONS
+    // -------------------------------------------------------------------------------------------------------------
     
+    TensorImpl TensorImpl::neg() const {
+        return ops::dispatch_unary<ops::UnaryNeg>(const_cast<TensorImpl&>(*this));
+    }
+
+    TensorImpl TensorImpl::abs() const {
+        return ops::dispatch_unary<ops::UnaryAbs>(const_cast<TensorImpl&>(*this));
+    }
+
+    TensorImpl TensorImpl::exp() const {
+        return ops::dispatch_unary<ops::UnaryExp>(const_cast<TensorImpl&>(*this));
+    }
+
+    TensorImpl TensorImpl::log() const {
+        return ops::dispatch_unary<ops::UnaryLog>(const_cast<TensorImpl&>(*this));
+    }
+
+
+    TensorImpl TensorImpl::sigmoid() const {
+        return ops::dispatch_unary<ops::UnarySigmoid>(const_cast<TensorImpl&>(*this));
+    }
+
+    TensorImpl TensorImpl::tanh() const {
+        return ops::dispatch_unary<ops::UnaryTanh>(const_cast<TensorImpl&>(*this));
+    }
+
+    TensorImpl TensorImpl::relu() const {
+        return ops::dispatch_unary<ops::UnaryRelu>(const_cast<TensorImpl&>(*this));
+    }
+
+    
+    void TensorImpl::neg_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryNeg>(*this);
+    }
+
+    void TensorImpl::abs_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryAbs>(*this);
+    }
+
+    void TensorImpl::exp_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryExp>(*this);
+    }
+
+    void TensorImpl::log_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryLog>(*this);
+    }
+
+    void TensorImpl::sigmoid_inplace() {
+        ops::dispatch_unary_inplace<ops::UnarySigmoid>(*this);
+    }
+
+    void TensorImpl::tanh_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryTanh>(*this);
+    }
+
+    void TensorImpl::relu_inplace() {
+        ops::dispatch_unary_inplace<ops::UnaryRelu>(*this);
+    }
+
     // -------------------------------------------------------------------------------------------------------------  
     //                                                  BINARY OPERATIONS
     // -------------------------------------------------------------------------------------------------------------
