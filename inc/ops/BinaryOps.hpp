@@ -44,5 +44,15 @@ namespace tensor::ops
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
+
+    struct BinaryMul : BinaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+    
+    struct BinaryDiv : BinaryOpBase<Direction::FORWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
     
 } // namespace tensor::ops
