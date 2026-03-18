@@ -28,6 +28,9 @@ namespace tensor::ops
         template <typename T>
         static constexpr T identity() { return static_cast<T>(0); }
 
+        template <typename T>
+        T operator()(T a, T b) const { return a + b; }
+        
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
