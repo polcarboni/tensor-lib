@@ -235,9 +235,8 @@ namespace tensor::ops
     }
 
     void UnaryTanh::cuda(TensorIterator& iter, cudaStream_t stream) {
-        kernel::unary_cuda_kernel<kernel::TypeDispatch::All>(iter, [] __device__ (auto x) {
-            using T = decltype(x);
-            return x > T(0) ? x : T(0);
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::Float>(iter, [] __device__ (auto x) {
+            return tanh(x);
         }, stream);
     }
 
