@@ -15,8 +15,10 @@
 namespace tensor
 {
 
-    // TODO: constructor to pass values to the storage (non-null initialization of vector)
-    // TODO: check if view and clone are using same or new storage correctly
+    // -------------------------------------------------------------------------------------------------------------  
+    //                                               TENSORIMPL CLASS
+    // ------------------------------------------------------------------------------------------------------------- 
+
     struct Storage;
     struct Node;
 
@@ -35,8 +37,22 @@ namespace tensor
         std::unique_ptr<grad::AutogradMeta> autograd_meta_ = nullptr;
 
 
-        // -------------------------------------------------- GETTERS --------------------------------------------------
+        // ----------------------------------------- HELPER FUNCTIONS ------------------------------------------
 
+        // TODO: check the compute strides part, might need alternative computations for empty/non empty tensors
+        /* Helper: computes metadata after chenges in view, shape, device, ... */
+        void refresh_metadata();
+
+        /* Helper: finds the actual memory offset for logical indexing (useful in element-wise operations)*/
+        size_t get_physical_offset(const std::vector<size_t>& indices) const;
+    
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                           ACCESSORS 
+        // ------------------------------------------------------------------------------------------------------
+        
+        // ------------------------------------------ GETTERS ----------------------------------------------------
+        
         std::vector<size_t>& get_shape();
         std::vector<size_t>& get_strides();
         ScalarType get_dtype();
@@ -44,6 +60,9 @@ namespace tensor
         Device get_device();
         bool requires_grad();
         bool get_contiguous();
+
+
+        // ------------------------------------------ SETTERS ----------------------------------------------------
 
         void set_shape(const std::vector<size_t>& shape);
         void set_strides(const std::vector<size_t>& strides);
@@ -54,18 +73,12 @@ namespace tensor
         void set_contiguous(bool contiguous);
 
 
-        // -------------------------------------------------- HELPER FUNCTIONS --------------------------------------------------
-
-        // TODO: check the compute strides part, might need alternative computations for empty/non empty tensors
-        /* Helper: computes metadata after chenges in view, shape, device, ... */
-        void refresh_metadata();
-
-        /* Helper: finds the actual memory offset for logical indexing (useful in element-wise operations)*/
-        size_t get_physical_offset(const std::vector<size_t>& indices) const;
-    
-
-        // -------------------------------------------------- CONSTRUCTORS --------------------------------------------------
+        // ------------------------------------------------------------------------------------------------------
+        //                                           CONSTRUCTORS 
+        // ------------------------------------------------------------------------------------------------------
         
+        // -------------------------------------- DEFAULT CONSTRUCTORS ----------------------------------------- 
+
         TensorImpl();
         ~TensorImpl();
         TensorImpl(const TensorImpl& other);
@@ -73,11 +86,8 @@ namespace tensor
         TensorImpl(TensorImpl&& other) noexcept;
         TensorImpl& operator=(TensorImpl&& other) noexcept;  
 
-        TensorImpl(const std::vector<size_t>& shape,
-                   double fill_value,
-                   ScalarType dtype = ScalarType::Float32,
-                   Device device = {DeviceType::CPU, 0},
-                   bool requires_grad = false);
+
+        // ------------------------------------- INITIALIZED CONSTRUCTORS --------------------------------------
 
         // TODO: requires check shape and type. Type should be from the 
         // storage? Storage handle this (requires some safety checks tho)
@@ -86,24 +96,50 @@ namespace tensor
                    Device device = {DeviceType::CPU, 0},
                    bool requires_grad = false,
                    void* src = nullptr);
+
+        TensorImpl(const std::vector<size_t>& shape,
+                   double fill_value,
+                   ScalarType dtype = ScalarType::Float32,
+                   Device device = {DeviceType::CPU, 0},
+                   bool requires_grad = false);
+        
+        
+        // -------------------------------------------------- AUTOGRAD METHODS --------------------------------------------------
+        
+        // TODO: provided only as placeholders/declarations
+
+        // Different metadata initialization if the tensor is a leaf or if it is generated by another operation
+        void init_leaf_metadata();
+        void init_intermediate_metadata(std::shared_ptr<Node> grad_fn);
+        
+        // Increment the version if an oepration modifies the storage data
+        void bump_version();
+        uint32_t get_version() const;
+
+        // Return true if autograd_meta_ has no grad_fn_
+        bool is_leaf() const;
+
         
         
 
-        // -------------------------------------------------- INDEXERS/ACCESSORS --------------------------------------------------
-
-        // Data accessor helpers
+        // ------------------------------------------------------------------------------------------------------
+        //                                           INDEXERS [], () 
+        // ------------------------------------------------------------------------------------------------------
+        
+        // -------------------------------------- DATA ACCESSORS HELPERS ----------------------------------------
+        
         
         template <typename T>
         T* data_ptr();
-
+        
         void* data_ptr();
-
+        
         const void* data_ptr() const;
-
+        
         template <typename T>
         const T* data_ptr() const;
-
-        // ---------------------------------
+        
+        // -------------------------------------------- INDEXERS ----------------------------------------------
         
         template <typename T>
         T& operator()(const std::vector<size_t>& indices);
@@ -117,7 +153,9 @@ namespace tensor
         TensorImpl operator[](size_t index);
 
 
-        // -------------------------------------------------- FILLING OPERATIONS --------------------------------------------------
+        // ------------------------------------------------------------------------------------------------------
+        //                                           FILLING OPERATIONS
+        // ------------------------------------------------------------------------------------------------------ 
 
         /**
          * Fill the tensor with a constant value. The provided value type is going to be
@@ -136,8 +174,11 @@ namespace tensor
 
         void fill_eye();
 
+        // ------------------------------------------------------------------------------------------------------
+        //                                           UNARY OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
 
-        // -------------------------------------------------- GEOMETRIC OPERATIONS --------------------------------------------------
+        // --------------------------------------- GEOMETRIC OPERATIONS ----------------------------------------
         
         /* Checks if strides define a contiguous representation of data */
         bool is_contiguous() const;
@@ -177,29 +218,13 @@ namespace tensor
         TensorImpl to_dtype(ScalarType target_dtype) const;
 
 
-        // TODO: implement transpose
+        // TODO: IMPLEMENT TRANSPOSE OPERATION
 
         // TensorImpl transpose(size_t dim0 = 0, size_t dim1 = 1) const;
         // void transpose_inplace(size_t dim0 = 0, size_t dim1 = 1);
 
 
-        // -------------------------------------------------- AUTOGRAD METHODS --------------------------------------------------
-        
-        // Different metadata initialization if the tensor is a leaf or if it is generated by another operation
-        void init_leaf_metadata();
-        void init_intermediate_metadata(std::shared_ptr<Node> grad_fn);
-        
-        // Increment the version if an oepration modifies the storage data
-        void bump_version();
-        uint32_t get_version() const;
-
-        // Return true if autograd_meta_ has no grad_fn_
-        bool is_leaf() const;
-
-        TensorImpl sum(const TensorImpl& lhs, const TensorImpl& rhs);
-
-
-        // -------------------------------------------------- UNARY OPERATIONS --------------------------------------------------
+        // ------------------------------------------ UNARY OPERATIONS ------------------------------------------
 
         TensorImpl neg() const;
         TensorImpl abs() const;
@@ -219,6 +244,11 @@ namespace tensor
         void sigmoid_inplace();
         void tanh_inplace();
         void relu_inplace();
+
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                           BINARY OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
 
     };
 
@@ -352,6 +382,11 @@ namespace tensor
     {
         return os << to_string(tensor);
     }
+
+    
+    // =============================================================================================================  
+    //                                                  STATIC OPERATIONS
+    // =============================================================================================================
 
     // -------------------------------------------- BINARY OPERATIONS --------------------------------------------
 

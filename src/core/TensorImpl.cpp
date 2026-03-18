@@ -7,34 +7,7 @@
 #include <optional>
 #include <random>
 
-
-/**
- * TODO: check which templates require explicit instantiations
- */
-
 namespace tensor {
-
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                  GETTERS
-    // -------------------------------------------------------------------------------------------------------------        
-
-    std::vector<size_t>& TensorImpl::get_shape()   { return shape_; }
-    std::vector<size_t>& TensorImpl::get_strides() { return strides_; }
-    ScalarType TensorImpl::get_dtype()             { return dtype_; }
-    size_t TensorImpl::get_total_size()            { return total_size_; }
-    Device TensorImpl::get_device()                { return device_; }
-    bool TensorImpl::requires_grad()               { return requires_grad_; }
-    bool TensorImpl::get_contiguous()              { return contiguous_; }
-
-
-    void TensorImpl::set_shape(const std::vector<size_t>& shape)     { shape_ = shape; }
-    void TensorImpl::set_strides(const std::vector<size_t>& strides) { strides_ = strides; }
-    void TensorImpl::set_dtype(ScalarType dtype)                     { dtype_ = dtype; }
-    void TensorImpl::set_total_size(size_t total_size)               { total_size_ = total_size; }
-    void TensorImpl::set_device(const Device& device)                { device_ = device; }
-    void TensorImpl::set_requires_grad(bool requires_grad)           { requires_grad_ = requires_grad; }
-    void TensorImpl::set_contiguous(bool contiguous)                 { contiguous_ = contiguous; }
-
 
     // -------------------------------------------------------------------------------------------------------------  
     //                                              HELPER FUNCTIONS
@@ -86,9 +59,39 @@ namespace tensor {
 
 
     // -------------------------------------------------------------------------------------------------------------  
+    //                                                  ACCESSORS
+    // -------------------------------------------------------------------------------------------------------------        
+
+    // -------------------------------------------- GETTERS ------------------------------------------------------
+
+    std::vector<size_t>& TensorImpl::get_shape()   { return shape_; }
+    std::vector<size_t>& TensorImpl::get_strides() { return strides_; }
+    ScalarType TensorImpl::get_dtype()             { return dtype_; }
+    size_t TensorImpl::get_total_size()            { return total_size_; }
+    Device TensorImpl::get_device()                { return device_; }
+    bool TensorImpl::requires_grad()               { return requires_grad_; }
+    bool TensorImpl::get_contiguous()              { return contiguous_; }
+    
+
+    // -------------------------------------------- SETTERS ------------------------------------------------------
+
+    void TensorImpl::set_shape(const std::vector<size_t>& shape)     { shape_ = shape; }
+    void TensorImpl::set_strides(const std::vector<size_t>& strides) { strides_ = strides; }
+    void TensorImpl::set_dtype(ScalarType dtype)                     { dtype_ = dtype; }
+    void TensorImpl::set_total_size(size_t total_size)               { total_size_ = total_size; }
+    void TensorImpl::set_device(const Device& device)                { device_ = device; }
+    void TensorImpl::set_requires_grad(bool requires_grad)           { requires_grad_ = requires_grad; }
+    void TensorImpl::set_contiguous(bool contiguous)                 { contiguous_ = contiguous; }
+
+
+
+
+    // -------------------------------------------------------------------------------------------------------------  
     //                                                  CONSTRUCTORS
     // -------------------------------------------------------------------------------------------------------------
     
+    // -------------------------------------- DEFAULT CONSTRUCTORS ----------------------------------------- 
+
     TensorImpl::TensorImpl() = default;
     TensorImpl::~TensorImpl() = default;
 
@@ -115,7 +118,7 @@ namespace tensor {
     TensorImpl& TensorImpl::operator=(TensorImpl&& other) noexcept = default;
 
 
-    // ------------------------------------ CONSTRUCTOR OVERLOADS -------------------------------------
+    // ------------------------------------ INITIALIZED CONSTRUCTORS -------------------------------------
 
     TensorImpl::TensorImpl(const std::vector<size_t>& shape,
                            ScalarType dtype,
@@ -156,7 +159,8 @@ namespace tensor {
     //                                              INDEXERS/ACCESSORS
     // -------------------------------------------------------------------------------------------------------------
 
-    // Data accessor helper
+    // -------------------------------------- DATA ACCESSORS HELPERS ----------------------------------------
+
     template <typename T>
     T* TensorImpl::data_ptr()
     {
@@ -180,6 +184,9 @@ namespace tensor {
     {
         return static_cast<const T*>(data_ptr());
     }
+
+
+    // -------------------------------------------- INDEXERS ----------------------------------------------
 
     // TODO: provide const version
     template <typename T>
@@ -280,8 +287,10 @@ namespace tensor {
 
 
     // -------------------------------------------------------------------------------------------------------------  
-    //                                          GEOMETRIC OPERATIONS
+    //                                          UNARY OPERATIONS
     // -------------------------------------------------------------------------------------------------------------
+
+    // --------------------------------------- GEOMETRIC OPERATIONS ----------------------------------------
 
     /* Checks if the strides represent a contiguous representation of data */
     bool TensorImpl::is_contiguous() const
@@ -309,6 +318,26 @@ namespace tensor {
         return true;
     }
 
+
+    TensorImpl TensorImpl::contiguous() const
+    {
+        if (this->is_contiguous()) {
+            return TensorImpl(*this);
+        }
+
+        return ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
+    }
+
+    void TensorImpl::contiguous_inplace()
+    {
+        if (this->is_contiguous()) {
+            return;
+        }
+
+        // Does not use the inplace to avoid race condition when rearranging the data
+        TensorImpl result = ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
+        *this = std::move(result);
+    }
 
     TensorImpl TensorImpl::view(const std::vector<size_t>& new_shape) const
     {
@@ -340,28 +369,6 @@ namespace tensor {
         // }
 
         return result;
-    }
-
-
-    TensorImpl TensorImpl::contiguous() const
-    {
-        if (this->is_contiguous()) {
-            return TensorImpl(*this);
-        }
-
-        return ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
-    }
-
-
-    void TensorImpl::contiguous_inplace()
-    {
-        if (this->is_contiguous()) {
-            return;
-        }
-
-        // Does not use the inplace to avoid race condition when rearranging the data
-        TensorImpl result = ops::dispatch_unary<ops::ContiguousOp>(const_cast<TensorImpl&>(*this));
-        *this = std::move(result);
     }
     
     TensorImpl TensorImpl::reshape(const std::vector<size_t>& new_shape) const
@@ -395,10 +402,9 @@ namespace tensor {
         return TensorImpl(std::move(result));
     }
 
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                  UNARY OPERATIONS
-    // -------------------------------------------------------------------------------------------------------------
-    
+
+    // ------------------------------------------ UNARY OPERATIONS ------------------------------------------
+
     TensorImpl TensorImpl::neg() const {
         return ops::dispatch_unary<ops::UnaryNeg>(const_cast<TensorImpl&>(*this));
     }
@@ -457,18 +463,20 @@ namespace tensor {
         ops::dispatch_unary_inplace<ops::UnaryRelu>(*this);
     }
 
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                  BINARY OPERATIONS
-    // -------------------------------------------------------------------------------------------------------------
-    
+
+
+    // =============================================================================================================  
+    //                                                  STATIC OPERATIONS
+    // =============================================================================================================
+
+    // -------------------------------------------- BINARY OPERATIONS --------------------------------------------
+
     TensorImpl add(TensorImpl& lhs, TensorImpl& rhs) {
         return ops::dispatch_binary<ops::BinaryAdd>(lhs, rhs);
     }
     
     
-    // -------------------------------------------------------------------------------------------------------------  
-    //                                                REDUCTION OPERATIONS
-    // -------------------------------------------------------------------------------------------------------------
+    // -------------------------------------------- REDUCTION OPERATIONS --------------------------------------------
 
     TensorImpl sum(TensorImpl& tensor) {
         std::optional<std::vector<size_t>> axes = std::nullopt; 
