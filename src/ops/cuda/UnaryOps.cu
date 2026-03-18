@@ -198,6 +198,19 @@ namespace tensor::ops
         }, stream);
     }
 
+    void UnaryAbs::cuda(TensorIterator& iter, cudaStream_t stream) {
+        if (iter.get_common_dtype() == ScalarType::Bool)
+            throw std::runtime_error("UnaryAbs: not supported for bool type");
+
+        kernel::unary_cuda_kernel<kernel::TypeDispatch::All>(iter, [] __device__ (auto x) {
+            using T = decltype(x);
+            if constexpr (std::is_same_v<T, bool>)
+                return T{}; //avoids compiler warning
+            else
+                return abs(x);
+        }, stream);
+}
+
     void UnaryExp::cuda(TensorIterator& iter, cudaStream_t stream) {
         kernel::unary_cuda_kernel<kernel::TypeDispatch::Float>(iter, [] __device__(auto x) {
             return exp(x);

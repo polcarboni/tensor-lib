@@ -145,6 +145,14 @@ namespace tensor::ops {
         }
     }
 
+    void UnaryAbs::cpu(TensorIterator& iter) {
+        if (iter.get_common_dtype() == ScalarType::Bool) {
+            throw std::runtime_error("UnaryAbs: cannot use on bool type");
+        } else {
+            kernel::unary_cpu_kernel(iter, [](auto x) { return std::abs(x); });
+        }
+    }
+
     void UnaryExp::cpu(TensorIterator& iter) {
         ScalarType dtype = iter.get_common_dtype();
 
