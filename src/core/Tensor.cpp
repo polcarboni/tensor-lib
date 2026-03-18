@@ -108,9 +108,10 @@ namespace tensor
     Tensor::Tensor(const Tensor& other)
         : pimpl_(other.pimpl_) { }
 
-    Tensor Tensor::clone() const
-    {
-        return Tensor(); // placeholder
+    Tensor Tensor::clone() const {
+        Tensor t;
+        t.pimpl_ = std::make_shared<TensorImpl>(*pimpl_); // deep copy via Impl's copy ctor
+        return t;
     }
 
 
