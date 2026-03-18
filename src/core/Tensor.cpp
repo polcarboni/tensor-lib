@@ -5,12 +5,6 @@
 #include <vector>
 #include <memory>
 
-/**
- * TODO: check if the use of return is correct in void inplace operations with
- *       API call to impl_ function.
- */
-
-
 namespace {
 
     /**
@@ -238,7 +232,7 @@ namespace tensor
     }
 
     void Tensor::contiguous_inplace() {
-        return pimpl_->contiguous_inplace();
+        pimpl_->contiguous_inplace();
     }
 
     bool Tensor::is_contiguous() const {
@@ -315,13 +309,13 @@ namespace tensor
         return result;
     }
 
-    void Tensor::neg_inplace() { return pimpl_->neg_inplace(); }
-    void Tensor::abs_inplace() { return pimpl_->abs_inplace(); }
-    void Tensor::exp_inplace() { return pimpl_->exp_inplace(); }
-    void Tensor::log_inplace() { return pimpl_->log_inplace(); }
-    void Tensor::sigmoid_inplace() { return pimpl_->sigmoid_inplace(); }
-    void Tensor::tanh_inplace() { return pimpl_->tanh_inplace(); }
-    void Tensor::relu_inplace() { return pimpl_->relu_inplace(); }
+    void Tensor::neg_inplace() { pimpl_->neg_inplace(); }
+    void Tensor::abs_inplace() { pimpl_->abs_inplace(); }
+    void Tensor::exp_inplace() { pimpl_->exp_inplace(); }
+    void Tensor::log_inplace() { pimpl_->log_inplace(); }
+    void Tensor::sigmoid_inplace() { pimpl_->sigmoid_inplace(); }
+    void Tensor::tanh_inplace() { pimpl_->tanh_inplace(); }
+    void Tensor::relu_inplace() { pimpl_->relu_inplace(); }
     
     
     // ------------------------------------------------------------------------------------------------------
