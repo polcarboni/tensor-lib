@@ -184,7 +184,8 @@ namespace tensor
     
     template <typename T>
     T& Tensor::operator[](size_t idx) {
-        return T{}; // PLACEHOLDER
+        // TODO: implement
+        throw std::logic_error("Tensor::operator[] not implemented");
     }    
     
     template <typename T>
