@@ -250,6 +250,17 @@ namespace tensor
         //                                           BINARY OPERATIONS
         // ------------------------------------------------------------------------------------------------------
 
+        TensorImpl add(const TensorImpl& other) const;
+        TensorImpl sub(const TensorImpl& other) const;
+        TensorImpl exp(const TensorImpl& other) const;
+        TensorImpl mul(const TensorImpl& other) const;
+        TensorImpl div(const TensorImpl& other) const;
+        
+        void add_inplace(const TensorImpl& other);
+        void sub_inplace(const TensorImpl& other);
+        void exp_inplace(const TensorImpl& other);
+        void mul_inplace(const TensorImpl& other);
+        void div_inplace(const TensorImpl& other);
     };
 
 

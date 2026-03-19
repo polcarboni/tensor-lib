@@ -464,6 +464,64 @@ namespace tensor {
     }
 
 
+    // ------------------------------------------------------------------------------------------------------
+    //                                           BINARY OPERATIONS
+    // ------------------------------------------------------------------------------------------------------
+
+    TensorImpl TensorImpl::add(const TensorImpl& other) const {
+        return ops::dispatch_binary<ops::BinaryAdd>(
+            const_cast<TensorImpl&>(*this),
+            const_cast<TensorImpl&>(other)
+        );
+    }
+
+    TensorImpl TensorImpl::sub(const TensorImpl& other) const {
+        return ops::dispatch_binary<ops::BinarySub>(
+            const_cast<TensorImpl&>(*this),
+            const_cast<TensorImpl&>(other)
+        );
+    }
+
+    TensorImpl TensorImpl::exp(const TensorImpl& other) const {
+        return ops::dispatch_binary<ops::BinaryExp>(
+            const_cast<TensorImpl&>(*this),
+            const_cast<TensorImpl&>(other)
+        );
+    }
+
+    TensorImpl TensorImpl::mul(const TensorImpl& other) const {
+        return ops::dispatch_binary<ops::BinaryMul>(
+            const_cast<TensorImpl&>(*this),
+            const_cast<TensorImpl&>(other)
+        );
+    }
+
+    TensorImpl TensorImpl::div(const TensorImpl& other) const {
+        return ops::dispatch_binary<ops::BinaryDiv>(
+            const_cast<TensorImpl&>(*this),
+            const_cast<TensorImpl&>(other)
+        );
+    }
+
+    void TensorImpl::add_inplace(const TensorImpl& other) {
+        ops::dispatch_binary_inplace<ops::BinaryAdd>(*this, const_cast<TensorImpl&>(other));
+    }
+
+    void TensorImpl::sub_inplace(const TensorImpl& other) {
+        ops::dispatch_binary_inplace<ops::BinarySub>(*this, const_cast<TensorImpl&>(other));
+    }
+
+    void TensorImpl::exp_inplace(const TensorImpl& other) {
+        ops::dispatch_binary_inplace<ops::BinaryExp>(*this, const_cast<TensorImpl&>(other));
+    }
+
+    void TensorImpl::mul_inplace(const TensorImpl& other) {
+        ops::dispatch_binary_inplace<ops::BinaryMul>(*this, const_cast<TensorImpl&>(other));
+    }
+
+    void TensorImpl::div_inplace(const TensorImpl& other) {
+        ops::dispatch_binary_inplace<ops::BinaryDiv>(*this, const_cast<TensorImpl&>(other));
+    }
 
     // =============================================================================================================  
     //                                                  STATIC OPERATIONS

@@ -321,8 +321,43 @@ namespace tensor
     // ------------------------------------------------------------------------------------------------------
     //                                           BINARY OPERATIONS
     // ------------------------------------------------------------------------------------------------------
-    
-    // TO BE IMPLEMENTED
+
+    Tensor Tensor::add(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->add(*other.pimpl_));
+        return result;
+    }
+
+    Tensor Tensor::sub(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->sub(*other.pimpl_));
+        return result;
+    }
+
+    Tensor Tensor::exp(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->exp(*other.pimpl_));
+        return result;
+    }
+
+    Tensor Tensor::mul(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->mul(*other.pimpl_));
+        return result;
+    }
+
+    Tensor Tensor::div(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->div(*other.pimpl_));
+        return result;
+    }
+
+
+    void Tensor::add_inplace(const Tensor& other) { pimpl_->add_inplace(*other.pimpl_); }
+    void Tensor::sub_inplace(const Tensor& other) { pimpl_->sub_inplace(*other.pimpl_); }
+    void Tensor::exp_inplace(const Tensor& other) { pimpl_->exp_inplace(*other.pimpl_); }
+    void Tensor::mul_inplace(const Tensor& other) { pimpl_->mul_inplace(*other.pimpl_); }
+    void Tensor::div_inplace(const Tensor& other) { pimpl_->div_inplace(*other.pimpl_); }
 
 
 

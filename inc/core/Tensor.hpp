@@ -176,6 +176,18 @@ namespace tensor
         // ------------------------------------------------------------------------------------------------------
         //                                           BINARY OPERATIONS
         // ------------------------------------------------------------------------------------------------------
+
+        Tensor add(const Tensor& other) const;
+        Tensor sub(const Tensor& other) const;
+        Tensor exp(const Tensor& other) const;
+        Tensor mul(const Tensor& other) const;
+        Tensor div(const Tensor& other) const;
+        
+        void add_inplace(const Tensor& other);
+        void sub_inplace(const Tensor& other);
+        void exp_inplace(const Tensor& other);
+        void mul_inplace(const Tensor& other);
+        void div_inplace(const Tensor& other);
     };
     
 
