@@ -87,5 +87,18 @@ namespace tensor::ops
     void BinaryExp::cpu(TensorIterator& iter) {
         kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return std::pow(a,b); });
     }
+
+    void BinaryMul::cpu(TensorIterator& iter) {
+        kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return a * b; });
+    }
+
+    void BinaryDiv::cpu(TensorIterator& iter) {
+        ScalarType dtype = iter.get_common_dtype();
+        if (dtype < ScalarType::Float32) {
+            throw std::runtime_error("Binary division only supports float type");
+        }
+
+        kernel::binary_cpu_kernel(iter, [](auto a, auto b) { return a / b; });
+    }
     
 } // namespace tensor::ops

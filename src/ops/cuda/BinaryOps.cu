@@ -213,5 +213,18 @@ namespace tensor::ops
     void BinaryExp::cuda(TensorIterator& iter, cudaStream_t stream) {
         kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return pow(a, b); }, stream);
     }
+    
+    void BinaryMul::cuda(TensorIterator& iter, cudaStream_t stream) {
+        kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return a * b; }, stream);
+    }
+
+    void BinaryDiv::cuda(TensorIterator& iter, cudaStream_t stream) {
+        ScalarType dtype = iter.get_common_dtype();
+        if (dtype < ScalarType::Float32) {
+            throw std::runtime_error("Binary division only supports float type");
+        }
+
+        kernel::binary_cuda_kernel(iter, [] __device__ (auto a, auto b) { return a / b; }, stream);
+    }
 
 } // namespace tensor::ops
