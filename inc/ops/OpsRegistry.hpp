@@ -14,7 +14,9 @@
     X(BinaryAdd)                \
     X(BinaryAddBackward)        \
     X(BinarySub)                \
-    X(BinaryExp)                 
+    X(BinaryExp)                \
+    X(BinaryMul)                \
+    X(BinaryDiv)
 
 #include "ReductionOps.hpp"
 #define FOR_EACH_REDUCTION_OP(X) \
