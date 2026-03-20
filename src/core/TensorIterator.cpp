@@ -2,6 +2,7 @@
 #include "core/TensorIterator.hpp"
 #include "ops/OpsRegistry.hpp"
 #include <algorithm>
+#include <optional>
 #include <numeric>
 
 namespace tensor
@@ -130,7 +131,81 @@ namespace tensor
         common_requires_grad_ = compute_requires_grad_();
     }
 
-        
+    //USES: reduction_axes_ (user input), broadcasted_strides_, broadcasted_shapes_
+    bool TensorIterator::compute_contiguous_along_reduced_axes_()
+    {
+        // No reduction axes
+        if(!reduction_axes_.has_value() || reduction_axes_->empty()) {
+            return false;
+        }
+
+        const auto& axes_mask = is_reduced_dim_.value();
+
+        if (axes_mask.size() != ndim_) {
+            return false;
+        }
+
+        // All operands
+        for (size_t op = 0; op < broadcasted_strides_.size(); ++op)
+        {
+            const auto& strides = broadcasted_strides_[op];
+            const auto& shape   = broadcasted_shapes_[op];
+
+            if (strides.size() != ndim_) {
+                return false;
+            }
+
+            for (size_t d = 0; d < ndim_; ++d) {
+                if (!axes_mask[d]) continue;
+
+                size_t expected_stride;
+                if (d + 1 == ndim_) {
+                    expected_stride = 1;
+                } else {
+                    expected_stride = strides[d + 1] * shape[d + 1];
+                }
+
+                if (strides[d] != expected_stride) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    
+    std::optional<std::vector<bool>> TensorIterator::compute_is_reduced_dim_(std::optional<std::vector<size_t>>& reduction_axes, size_t ndim)
+    {
+        if(!reduction_axes || reduction_axes.value().empty()) {
+            // Full reduction with no axes provided
+            return std::vector<bool>(ndim, true);
+        } else {
+            // Check is reduction axes are correctly provided
+            for (auto& ax : *reduction_axes) {
+                if (ax >= ndim) {
+                    throw std::runtime_error("Reduction: the provided dimensions are not correct");
+                } 
+            }
+        }
+
+        // 0: non-reduced, 1: reduced
+        std::vector<bool> is_reduced(ndim, false);
+        for (size_t ax : *reduction_axes) {
+            is_reduced[ax] = true;
+        }    
+
+        return is_reduced;
+    }
+      
+    int TensorIterator::count_num_reduced_axes_(TensorImpl* input)
+    {
+        if (!reduction_axes_.has_value()) {
+            return static_cast<int>(input->get_shape().size());
+        } else {
+            return static_cast<int>(reduction_axes_->size());
+        }
+    }
 
 
 
@@ -311,9 +386,21 @@ namespace tensor
 
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_reduction_()
-    {
+    {   
+
+        /**
+         * USED DATA MEMBERS: outputs_, inputs_, reduction_axes_, keepdims_
+         * 
+         * Compute and returns a vector of shapes, with one shape for each operation output.
+         * 
+         * Forward:
+         * Single input  Single output only, throws if multiple I/O are provided. (Might be changed).
+         * 
+         * Compute full redcution when the reduction axes are not provided.
+         */
+
         std::vector<std::vector<size_t>> computed_shapes;
-        computed_shapes.resize(outputs_.size());
+        computed_shapes.resize(Op::num_outputs());
 
         // ============================ FORWARD BROADCASTING ============================
 
@@ -327,36 +414,30 @@ namespace tensor
             auto input_shape = input->get_shape();
             auto input_rank  = input_shape.size();
 
-
-            if (!reduction_axes_) {
-                computed_shapes[0] = input_shape;
-                return computed_shapes;
-            }
-
-            auto& r_axes = *reduction_axes_;
-
-            // Full reduction (no axes provided)
-            if (r_axes.empty()) {
+            // TODO: This condition is too redundant and should depend only on one of these (not wrong tho)
+            if (!reduction_axes_ || (*reduction_axes_).empty() || num_reduced_axes_ == input_rank) {
                 computed_shapes[0] = std::vector<size_t>{1};
                 return computed_shapes;
             }
 
-            for (auto ax : r_axes) {
-                if (ax >= input_rank) {
-                    throw std::runtime_error("Reduction: the provided dimensions are not correct");
-                } 
-            }
+            // auto& r_axes = *reduction_axes_;
 
+            // // Full reduction (no axes provided), scalar output.
+            // if (r_axes.empty()) {
+            //     computed_shapes[0] = std::vector<size_t>{1};
+            //     return computed_shapes;
+            // }
 
             std::vector<size_t> output_shape;
 
+            // Fill the output_shape vector according to reduction axes and keepdim
             for (size_t i = 0; i < input_rank; ++i) {
-                if (std::find(r_axes.cbegin(), r_axes.cend(), i) != r_axes.cend()) {
-                    if (keepdims_) {
+                if (is_reduced_dim_.value()[i]) {
+                    if(keepdims_) {
                         output_shape.push_back(1);
-                    }  // else: reduced axis, skip. 
+                    }
                 } else {
-                        output_shape.push_back(input_shape[i]);
+                    output_shape.push_back(input_shape[i]);
                 }
             }
 
@@ -389,8 +470,8 @@ namespace tensor
 
             auto lhs_shape = inputs_[0]->get_shape();
             auto rhs_shape = inputs_[1]->get_shape();
-            auto lhs_rank = lhs_shape.size();
-            auto rhs_rank = rhs_shape.size();
+            auto lhs_rank  = lhs_shape.size();
+            auto rhs_rank  = rhs_shape.size();
 
             if (lhs_rank > 3 || rhs_rank > 3) {
                 throw std::runtime_error("Matmul: inputs must be at most 3D");
@@ -512,12 +593,19 @@ namespace tensor
                 const std::vector<size_t>& computed_stride = computed_strides[stride_idx];
                 const std::vector<size_t>& output_strides =  outputs_[i]->get_strides();
 
-                // Hard check: computed strides size must match the output shape size
-                if (computed_stride.size() != output_strides.size()) {
-                    throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
-                                             "] stride rank (" + std::to_string(computed_stride.size()) +
-                                             ") does not match shape rank (" +
-                                             std::to_string(output_strides.size()) + ")");
+                // Hard check: computed strides size must match the output shape size for
+                // non-reduction ops, or the input shape size for reduction ops (since
+                // reductions collapse dimensions, output rank differs from input rank).
+                if (Op::iter_kind() != IterationKind::REDUCTION) {
+                    if (computed_stride.size() != output_strides.size()) {
+                        throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
+                                                "] stride rank (" + std::to_string(computed_stride.size()) +
+                                                ") does not match shape rank (" +
+                                                std::to_string(output_strides.size()) + ")");
+                    }
+
+                } else {
+                    // SKIP FOR NOW REUQIRE SOME CHANGES
                 }
                 
                 // Soft check: control if computed strides are different from original output strides
@@ -638,6 +726,18 @@ namespace tensor
     }
 
 
+    /**
+     * I am not sure how strides should behave for reduction operations. Both inputs and outputs have strides.
+     * I assume that for a strided dimension the value is going to be 0.
+     * 
+     * Currently only supports single input and single output.
+     * 
+     * Input strides are forwarded 
+     * Output strides are defined by copying the actual output stride value for unreduced dims
+     * and 0 for reduced dims (The size is the same as the input).
+     * 
+     * NOTE: output iteration strides are different from the actual output tensors strides.
+     */
     template <typename Op>
     std::vector<std::vector<size_t>> TensorIterator::compute_strides_reduction_()
     {
@@ -650,37 +750,19 @@ namespace tensor
             auto input_strides = input->get_strides(); 
             auto ndim = input_strides.size(); 
 
-            std::vector<bool> is_reduced(ndim, false);
-            
-            if (reduction_axes_.has_value()) {
-                for (size_t ax : reduction_axes_.value()) {
-                    is_reduced[ax] = true;
-                }
-            }
-
-            // Does not use the strides data member for reasons I am not really familiar with:
-            // permutation of dimensions, coalescing of dimensions (ndim smaller than the original one)
-
-            // for now this could only be result.push_back(ipnut_strides);
-            // I will leave this comment to remember to add the required improvements for performance.
-            std::vector<size_t> input_iter_strides;
-            for (size_t i = 0; i < ndim; ++i) {
-                input_iter_strides.push_back(input_strides[i]);
-            }
-            result.push_back(std::move(input_iter_strides));
-
-
-            // This also assumes single output. Some reduction opes could be different
-            // but they might also use a separate function.
+            result.push_back(input_strides);
 
             auto output = outputs_[0]; 
             const auto& output_strides = output->get_strides(); 
-            // auto output_strides_size = output_strides.size(); 
+            
+            // Output iterator strides definition
             std::vector<size_t> output_iter_strides;
             size_t output_axis_idx = 0;
 
+            // output iterator strides population
+            // reduced dimensions -> 0, non-reduced dimensions -> output_stride
             for (size_t i = 0; i < ndim; ++i) {
-                if (is_reduced[i]) {
+                if (is_reduced_dim_.has_value() && (*is_reduced_dim_)[i]) {
                     output_iter_strides.push_back(0);
                     if (keepdims_) {
                         output_axis_idx++;
@@ -733,7 +815,7 @@ namespace tensor
         for (size_t i = 0; i < inputs_.size(); ++i) {
             if (!inputs_[i] || inputs_[i]->get_dtype() == common_dtype_) continue;
             // This will produce a nested iterator call
-            materialized_inputs_.push_back(inputs_[i]->to_dtype(common_dtype_));
+            materialized_inputs_.push_back(std::make_unique<TensorImpl>(inputs_[i]->to_dtype(common_dtype_)));
             inputs_[i] = materialized_inputs_.back().get();
         }
     }
@@ -762,9 +844,11 @@ namespace tensor
      * of the shapes vector).
      * 
      * It probably does not.
+     * 
+     * TODO: must remove the explicit params or making this variadic
      */
 
-template <typename Op>
+    template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
                                                               std::vector<std::vector<size_t>>& strides)
     {
@@ -827,7 +911,53 @@ template <typename Op>
     std::vector<bool> TensorIterator::compute_merge_decision_reduction_(std::vector<std::vector<size_t>>& shapes,
                                                                         std::vector<std::vector<size_t>>& strides)
     {
-        return {}; // placeholder
+
+        // Rank 0/1: no dimensions that can be merged.
+        if (shapes.empty() || shapes[0].size() <= 1) {
+            throw std::runtime_error("TensorIterator: Rank 0/1 operator have no dimensions to coalesce.");
+        }
+
+        const auto& common_shape = shapes[0];
+        size_t rank              = common_shape.size();
+        
+        auto input_strides  = strides[0];
+        auto output_strides = strides[1];
+        
+        // merge rule definition
+        std::vector<bool> merge_decisions;
+        merge_decisions.reserve(rank - 1);
+        
+        bool merge_possible = false;
+
+        for (size_t d = 0; d < rank - 1; ++d) {
+            bool can_merge = true;
+            bool cur_reduced  = (*is_reduced_dim_)[d];
+            bool next_reduced = (*is_reduced_dim_)[d + 1];
+
+            // Non-reduced dims cannot be merged with reduced dims
+            if (cur_reduced != next_reduced) {
+                can_merge = false;
+            }
+
+            // Input/output contiguity checks: must be both contiguous
+            if (can_merge) {
+                if (input_strides[d] != common_shape[d + 1] * input_strides[d + 1]) {
+                    can_merge = false;
+                }
+
+                if (output_strides[d] != common_shape[d + 1] * output_strides[d + 1]) {
+                    can_merge = false;
+                }
+            }
+            merge_decisions.push_back(can_merge);
+            if(can_merge) merge_possible = true;
+        }
+        
+        if (!merge_possible) {
+            throw std::runtime_error("TensorIterator: No dimensions are mergeable, coalescing optimization unavailable");
+        }
+
+        return merge_decisions;
     }
 
     template <typename Op>
@@ -957,7 +1087,17 @@ template <typename Op>
     bool TensorIterator::get_common_is_contiguous() { return common_is_contiguous_; }
     bool TensorIterator::get_common_requires_grad() { return common_requires_grad_; }
     bool TensorIterator::get_scalar()               { return scalar_; }
-    
+    bool TensorIterator::get_keepdims() const       { return keepdims_; }
+    bool TensorIterator::get_is_broadcasted() const { return is_broadcasted_; }
+
+    bool TensorIterator::get_contiguous_along_reduced_axes() const { return contiguous_along_reduced_axes_; }
+    int  TensorIterator::get_num_reduced_axes() const              { return num_reduced_axes_; }
+    std::optional<std::vector<bool>> TensorIterator::get_is_reduced_dim() const { return is_reduced_dim_; }
+    std::optional<std::vector<size_t>> TensorIterator::get_reduction_axes() const { return reduction_axes_; }
+
+    ScalarType TensorIterator::get_input_dtype() const { return inputs_[0]->get_dtype(); }
+
+
     void TensorIterator::set_inplace(bool val) { inplace_ = val; }
     void TensorIterator::set_reduction_axes(std::optional<std::vector<size_t>> axes) { reduction_axes_ = std::move(axes); }
     void TensorIterator::set_keepdims(bool keepdims) { keepdims_ = keepdims; }
@@ -992,16 +1132,21 @@ template <typename Op>
         return nullptr; // placeholder
     }
     
+
+    // ---------------------------- GRAD ----------------------------
+    
     void* TensorIterator::output_grad_data(int idx)
     {
         return nullptr; // placeholder
     }
-
+    
     const void* TensorIterator::output_grad_data(int idx) const
     {
         return nullptr; // placeholder
     }
     
+    // ---------------------------- TEMPLATED POINTERS ----------------------------
+
 
     template <typename T>
     T* TensorIterator::input_ptr(int idx)
@@ -1049,7 +1194,6 @@ template <typename Op>
         return broadcasted_strides_[arg_idx][dim_idx];
     }
 
-    // get_numel has actually a different meaning for each operation. But the same API!
 
     template <typename Op>
     size_t TensorIterator::compute_numel_(const std::vector<std::vector<size_t>>& broadcasted_strides) {
@@ -1059,20 +1203,13 @@ template <typename Op>
         };
 
         if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE ||
-                      Op::iter_kind() == IterationKind::COPY) {
+                      Op::iter_kind() == IterationKind::COPY         ||
+                      Op::iter_kind() == IterationKind::REDUCTION) {
             
             // Check: the number of elements is based on teh shape of the output.
             // each element of the output is computed by an operation (an element).
             
             return shape_numel(broadcasted_shapes_[0]);
-        }
-        
-        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
-            // return shape_numel(broadcasted_shapes[0]);
-
-            // This should be based on the size of the input, since using the output size
-            // will copmute less operations (smaller). 
-            throw std::runtime_error("compute_numel_: not implemented for REDUCTION");
         }
         
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
@@ -1091,7 +1228,8 @@ template <typename Op>
     size_t TensorIterator::compute_ndim_(const std::vector<std::vector<size_t>>& broadcasted_strides) {
         
         if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE ||
-                      Op::iter_kind() == IterationKind::COPY) {
+                      Op::iter_kind() == IterationKind::COPY         ||
+                      Op::iter_kind() == IterationKind::REDUCTION) {
             
             if (broadcasted_strides.empty()) {
                 return 0;
@@ -1099,10 +1237,6 @@ template <typename Op>
             
             // Broadcasted strides have all the same rank
             return broadcasted_strides[0].size();
-        }
-        
-        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
-            throw std::runtime_error("compute_ndim_: not implemented for REDUCTION");
         }
         
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {  
@@ -1125,6 +1259,11 @@ template <typename Op>
         output_shapes_.push_back(tensor->get_shape());
     } 
 
+
+    // ===================================================================================
+    //                                 ITERATOR BUILD FUNCTION
+    // ===================================================================================
+
     template <typename Op>
     void TensorIterator::build(const ScalarType cast_type)
     {
@@ -1133,12 +1272,19 @@ template <typename Op>
         // Calls tensorImpl.to_dtype() for all input tensors with type different than common_dtype_
         // and changes the inputs_ vector inplace.
         materialize_inputs_();
+        
 
         if (Op::get_direction() == Direction::FORWARD)
         {
             if (outputs_.size() > 1) {
                 throw std::runtime_error("Forward operation expects at most 1 output");
             }
+
+            if (Op::iter_kind() == IterationKind::REDUCTION) {
+                is_reduced_dim_   = compute_is_reduced_dim_(reduction_axes_, inputs_[0]->get_strides().size()); 
+                num_reduced_axes_ = count_num_reduced_axes_(inputs_[0]);
+            }
+
 
             // UNARY CASTING OPERATION: uses the provided cast_type argument
             // TODO: add check also on the operation template (if std::is_base_of_v<CastOp, Op>)
@@ -1154,11 +1300,15 @@ template <typename Op>
                 common_dtype_ = cast_type;
             }
             
+            // THIS MUST BE CHANGED: all shapes (I/O) should be in broadcasted_shapes_
+            // and using the templated Op::num_outputs() to get the output_shapes correctly.
+
             broadcasted_shapes_ = broadcast_shapes_<Op>();
-            output_shapes_ = broadcasted_shapes_;
+            output_shapes_      = broadcasted_shapes_;
             
+            // Create the synthesized output for operations that support lazy initialization
             if (outputs_.empty()) {
-                outputs_.push_back(nullptr);
+                outputs_.resize(1, nullptr);
             }
 
             if (!outputs_[0]) {
@@ -1173,39 +1323,31 @@ template <typename Op>
             }
         }
         
+        // BACKWARD NOT IMPLEMENTED YET
         else if (Op::get_direction() == Direction::BACKWARD) {
-
             if (inputs_.size() != Op::num_outputs()) {
-                throw std::runtime_error("Backward ERROR ....");
-            }
-
+                throw std::runtime_error("Backward ERROR ....");}
             if (outputs_.size() != Op::num_inputs()) {
-                throw std::runtime_error("Expected a grad tensor per forward input.");
-            }
-
+                throw std::runtime_error("Expected a grad tensor per forward input.");}
             for (size_t i = 0; i < Op::num_inputs(); i++) {
-
-                if (!outputs_[i]) {
-                    throw std::runtime_error("Backward pass expects preallocatd tensors ...");
-                } 
-                
-                if (!outputs_[i]->requires_grad()) {
-                    throw std::runtime_error("Backward: tensor has no requires_grad_ ...");
-                }
-            }
+                if (!outputs_[i]) { throw std::runtime_error("Backward pass expects preallocatd tensors ..."); } 
+                if (!outputs_[i]->requires_grad()) {throw std::runtime_error("Backward: tensor has no requires_grad_ ...");}}
         }
 
+
         common_is_contiguous_ = check_contiguous_();
-        broadcasted_strides_ = compute_broadcast_strides_<Op>();
+        broadcasted_strides_  = compute_broadcast_strides_<Op>();
+                
+        if (Op::iter_kind() == IterationKind::REDUCTION) {
+            contiguous_along_reduced_axes_ = compute_contiguous_along_reduced_axes_();
+        }
         
+        // TODO: wrong API. The reduction requires another arg. CHANGE THIS
         coalesce_dimensions_<Op>(broadcasted_shapes_, broadcasted_strides_);
 
         numel_ = compute_numel_<Op>(broadcasted_strides_);
         ndim_  = compute_ndim_<Op>(broadcasted_strides_);
     }
-
-
-
 
 
     /* Explicit instantiations */

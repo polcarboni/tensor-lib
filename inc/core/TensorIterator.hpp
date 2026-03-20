@@ -31,9 +31,9 @@ namespace tensor
         bool       common_is_contiguous_ = false;                       /* true if all operands are contiguous */
         bool       common_requires_grad_ = false;                       /* true if all tensors require grads */
 
-        std::vector<std::vector<size_t>> broadcasted_shapes_;           
-        std::vector<std::vector<size_t>> broadcasted_strides_;
-        bool is_broadcasted_ = false;                                    /* if non active the operation has not used broadcast and can use fast path */
+        std::vector<std::vector<size_t>> broadcasted_shapes_;           /* SHOULD have both inputs and outputs shapes*/
+        std::vector<std::vector<size_t>> broadcasted_strides_;          /* iterator space strides */
+        bool is_broadcasted_ = false;                                   /* if non active the operation has not used broadcast and can use fast path */
         
         size_t numel_;                                                  /* Number of elements of the iterator space */
         size_t ndim_;                                                   /* Rank of the iterator space */
@@ -48,6 +48,10 @@ namespace tensor
 
         std::optional<std::vector<size_t>> reduction_axes_ = std::nullopt;
         bool keepdims_ = false;
+        int num_reduced_axes_ = 0;
+        bool contiguous_along_reduced_axes_ = false;
+        std::optional<std::vector<bool>> is_reduced_dim_ = std::nullopt;
+        std::optional<std::vector<bool>> compute_is_reduced_dim_(std::optional<std::vector<size_t>>& reduced_axes, size_t ndim);
 
 
         // ---------- Matmul operations data members ----------
@@ -96,6 +100,8 @@ namespace tensor
         template<typename Op>
         void validate_inputs_metadata_();
 
+        bool compute_contiguous_along_reduced_axes_();
+        int count_num_reduced_axes_(TensorImpl* input);
         
         // -------------------------------------------------- SHAPES BROADCASTING --------------------------------------------------
 
@@ -149,6 +155,8 @@ namespace tensor
          * Called by the coalesce_dimensions_( ) private method.
          * 
          * Computes the possibility of each dimension to be merged with the following one.
+         * 
+         * TODO: fix the API since the reduction uses mixed explicit and implicit members.
          */
         template <typename Op>
         std::vector<bool> compute_merge_decision_(std::vector<std::vector<size_t>>& shapes,
@@ -164,7 +172,7 @@ namespace tensor
 
         template <typename Op>
         std::vector<bool> compute_merge_decision_matmul_(std::vector<std::vector<size_t>>& shapes,
-                                                        std::vector<std::vector<size_t>>& strides);
+                                                         std::vector<std::vector<size_t>>& strides);
 
         template <typename Op>
         std::vector<bool> compute_merge_decision_copy_(std::vector<std::vector<size_t>>& shapes,
@@ -246,11 +254,20 @@ namespace tensor
         bool get_common_is_contiguous();
         bool get_common_requires_grad();
         bool get_scalar();
+        bool get_keepdims() const;
+        bool get_is_broadcasted() const;
+
+        bool get_contiguous_along_reduced_axes() const;
+        int  get_num_reduced_axes() const;
+        std::optional<std::vector<bool>> get_is_reduced_dim() const;
+        std::optional<std::vector<size_t>> get_reduction_axes() const;
         
         void set_inplace(bool val);
         void set_reduction_axes(const std::optional<std::vector<size_t>> axes);
         void set_keepdims(bool keepdims);
         void set_scalar(bool scalar);
+
+        ScalarType get_input_dtype() const; // for casting operation
 
         // -------------------------------------------------- DISPATCHER INTERFACES -------------------------------------------------- 
 
