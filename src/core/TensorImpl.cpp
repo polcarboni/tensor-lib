@@ -523,6 +523,28 @@ namespace tensor {
         ops::dispatch_binary_inplace<ops::BinaryDiv>(*this, const_cast<TensorImpl&>(other));
     }
 
+
+    // ------------------------------------------------------------------------------------------------------
+    //                                           REDUCTION OPERATIONS
+    // ------------------------------------------------------------------------------------------------------
+
+    TensorImpl TensorImpl::sum(const std::vector<size_t>& axes, bool keepdims) const {
+        return ops::dispatch_reduction<ops::ReduceSum>(const_cast<TensorImpl&>(*this), axes, keepdims);
+    }
+
+    TensorImpl TensorImpl::mul(const std::vector<size_t>& axes, bool keepdims) const {
+        return ops::dispatch_reduction<ops::ReduceMul>(const_cast<TensorImpl&>(*this), axes, keepdims);
+    }  
+
+    TensorImpl TensorImpl::max(const std::vector<size_t>& axes, bool keepdims) const {
+        return ops::dispatch_reduction<ops::ReduceMax>(const_cast<TensorImpl&>(*this), axes, keepdims);
+    }
+
+    TensorImpl TensorImpl::min(const std::vector<size_t>& axes, bool keepdims) const {
+        return ops::dispatch_reduction<ops::ReduceMin>(const_cast<TensorImpl&>(*this), axes, keepdims);
+    }
+
+
     // =============================================================================================================  
     //                                                  STATIC OPERATIONS
     // =============================================================================================================
@@ -537,7 +559,7 @@ namespace tensor {
     // -------------------------------------------- REDUCTION OPERATIONS --------------------------------------------
 
     TensorImpl sum(TensorImpl& tensor) {
-        std::optional<std::vector<size_t>> axes = std::nullopt; 
+        std::vector<size_t> axes = {};
         bool keepdims = false;
         return ops::dispatch_reduction<ops::ReduceSum>(tensor, axes, keepdims);
     }

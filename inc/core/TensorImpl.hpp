@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <functional>
+#include <optional>
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
@@ -261,6 +262,22 @@ namespace tensor
         void exp_inplace(const TensorImpl& other);
         void mul_inplace(const TensorImpl& other);
         void div_inplace(const TensorImpl& other);
+
+        
+        // ------------------------------------------------------------------------------------------------------
+        //                                           REDUCTION OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
+
+        TensorImpl sum(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        TensorImpl mul(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        TensorImpl max(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        TensorImpl min(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        
+        void mul_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        void sum_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        void max_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+        void min_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
+
     };
 
 
