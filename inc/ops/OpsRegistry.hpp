@@ -20,7 +20,10 @@
 
 #include "ReductionOps.hpp"
 #define FOR_EACH_REDUCTION_OP(X) \
-    X(ReduceSum)
+    X(ReduceSum)                 \
+    X(ReduceMul)                 \
+    X(ReduceMax)                 \
+    X(ReduceMin)
 
 #include "UnaryOps.hpp"
 #define FOR_EACH_UNARY_OP(X) \
