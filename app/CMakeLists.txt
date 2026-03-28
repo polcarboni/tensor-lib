@@ -36,3 +36,10 @@ add_executable(binary_ops_cuda binary_ops_cuda.cpp)
 target_link_libraries(binary_ops_cuda PRIVATE tensor_lib)
 target_include_directories(binary_ops_cuda PRIVATE ${CMAKE_SOURCE_DIR}/inc)
 install(TARGETS binary_ops_cuda)
+
+# ---------------------------- REDUCTION OPS -----------------------------
+
+add_executable(reduction_ops_cpu reduction_ops_cpu.cpp)
+target_link_libraries(reduction_ops_cpu PRIVATE tensor_lib)
+target_include_directories(reduction_ops_cpu PRIVATE ${CMAKE_SOURCE_DIR}/inc)
+install(TARGETS reduction_ops_cpu)
