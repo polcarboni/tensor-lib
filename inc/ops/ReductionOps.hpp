@@ -1,6 +1,7 @@
 #pragma once
 #include "core/TensorIterator.hpp"
 #include <cstdint>
+#include <limits>
 
 typedef struct CUstream_st* cudaStream_t;
 
@@ -35,8 +36,51 @@ namespace tensor::ops
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
 
+
     /* Reduction Backward (usually an "Expand" or "Broadcast" op) */
     struct ReduceSumBackward : ReductionOpBase<Direction::BACKWARD> {
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
+
+    struct ReduceMul : ReductionOpBase<Direction::FORWARD> {
+        template <typename T>
+        static constexpr T identity() { return static_cast<T>(1); }
+
+        template <typename T>
+        T operator()(T a, T b) const { return a * b; }
+
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
+
+    /* Maximum Reduction */
+    struct ReduceMax : ReductionOpBase<Direction::FORWARD> {
+        template <typename T>
+        static constexpr T identity() {
+            return std::numeric_limits<T>::lowest();
+        }
+
+        template <typename T>
+        T operator()(T a, T b) const { return a > b ? a : b; }
+
+        static void cpu(TensorIterator& iter);
+        static void cuda(TensorIterator& iter, cudaStream_t stream);
+    };
+
+    
+    /* Minimum Reduction */
+    struct ReduceMin : ReductionOpBase<Direction::FORWARD> {
+        template <typename T>
+        static constexpr T identity() {
+            return std::numeric_limits<T>::max();
+        }
+
+        template <typename T>
+        T operator()(T a, T b) const { return a < b ? a : b; }
+
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };
