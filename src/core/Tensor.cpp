@@ -3,7 +3,9 @@
 #include "core/TensorImpl.hpp"
 #include <stdexcept>
 #include <vector>
+#include <initializer_list>
 #include <memory>
+#include <algorithm>
 
 namespace {
 
@@ -35,6 +37,27 @@ namespace {
             }
             v.push_back(static_cast<size_t>(x));
         }
+        return v;
+    }
+
+
+    std::vector<size_t> checked_reduction_indices(std::initializer_list<int> indices) {
+        std::vector<size_t> v;
+        v.reserve(indices.size());
+
+        for (int x : indices) {
+            if (x < 0) {
+                throw std::invalid_argument("Negative reduction indices not allowed");
+            }
+            v.push_back(static_cast<size_t>(x));
+        }
+
+        std::vector<size_t> sorted = v;
+        std::sort(sorted.begin(), sorted.end());
+        if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+            throw std::invalid_argument("duplicate reduction indices not allowed!");
+        }
+
         return v;
     }
 }
@@ -358,6 +381,110 @@ namespace tensor
     void Tensor::exp_inplace(const Tensor& other) { pimpl_->exp_inplace(*other.pimpl_); }
     void Tensor::mul_inplace(const Tensor& other) { pimpl_->mul_inplace(*other.pimpl_); }
     void Tensor::div_inplace(const Tensor& other) { pimpl_->div_inplace(*other.pimpl_); }
+
+
+    // ------------------------------------------------------------------------------------------------------
+    //                                         REDUCTION OPERATIONS
+    // ------------------------------------------------------------------------------------------------------
+
+    
+    Tensor Tensor::sum(bool keepdims) const {
+        return sum(std::vector<size_t>{}, keepdims);
+    }
+
+    Tensor Tensor::mul(bool keepdims) const {
+        return mul(std::vector<size_t>{}, keepdims);
+    }
+
+    Tensor Tensor::max(bool keepdims) const {
+        return max(std::vector<size_t>{}, keepdims);
+    }
+
+    Tensor Tensor::min(bool keepdims) const {
+        return min(std::vector<size_t>{}, keepdims);
+    }
+
+
+    Tensor Tensor::sum(const std::initializer_list<int> axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->sum(checked_reduction_indices(axes), keepdims));
+        return result;
+    }
+    
+    Tensor Tensor::mul(const std::initializer_list<int> axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->mul(checked_reduction_indices(axes), keepdims));
+        return result;
+    }
+    
+    Tensor Tensor::max(const std::initializer_list<int> axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->max(checked_reduction_indices(axes), keepdims));
+        return result;
+    }
+    
+    Tensor Tensor::min(const std::initializer_list<int> axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->min(checked_reduction_indices(axes), keepdims));
+        return result;
+    }
+    
+
+    Tensor Tensor::sum(const std::vector<size_t>& axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->sum(axes, keepdims));
+        return result;
+    }
+
+    Tensor Tensor::mul(const std::vector<size_t>& axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->mul(axes, keepdims));
+        return result;        
+    }
+
+    Tensor Tensor::max(const std::vector<size_t>& axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->max(axes, keepdims));
+        return result;
+    }
+
+    Tensor Tensor::min(const std::vector<size_t>& axes, bool keepdims) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->min(axes, keepdims));
+        return result;
+    }
+
+
+    Tensor Tensor::sum(int axis, bool keepdims) const {
+        if (axis < 0) {
+            throw std::invalid_argument("axis must be non-negative");
+        }
+        return sum(std::vector<size_t>{static_cast<size_t>(axis)}, keepdims);
+    }
+
+    Tensor Tensor::mul(int axis, bool keepdims) const {
+        if (axis < 0) {
+            throw std::invalid_argument("axis must be non-negative");
+        }
+        return mul(std::vector<size_t>{static_cast<size_t>(axis)}, keepdims);
+    }
+
+    Tensor Tensor::max(int axis, bool keepdims) const {
+        if (axis < 0) {
+            throw std::invalid_argument("axis must be non-negative");
+        }
+        return max(std::vector<size_t>{static_cast<size_t>(axis)}, keepdims);
+    }
+
+    Tensor Tensor::min(int axis, bool keepdims) const {
+        if (axis < 0) {
+            throw std::invalid_argument("axis must be non-negative");
+        }
+        return min(std::vector<size_t>{static_cast<size_t>(axis)}, keepdims);
+    }
+
+
+    // Add inplace versions
 
 
 

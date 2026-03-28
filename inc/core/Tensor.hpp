@@ -188,6 +188,33 @@ namespace tensor
         void exp_inplace(const Tensor& other);
         void mul_inplace(const Tensor& other);
         void div_inplace(const Tensor& other);
+
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                         REDUCTION OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
+
+        Tensor sum(bool keepdims = false) const;
+        Tensor mul(bool keepdims = false) const;
+        Tensor max(bool keepdims = false) const;
+        Tensor min(bool keepdims = false) const;
+
+        Tensor sum(const std::initializer_list<int> axes, bool keepdims = false) const;
+        Tensor mul(const std::initializer_list<int> axes, bool keepdims = false) const;
+        Tensor max(const std::initializer_list<int> axes, bool keepdims = false) const;
+        Tensor min(const std::initializer_list<int> axes, bool keepdims = false) const;
+        
+        Tensor sum(const std::vector<size_t>& axes, bool keepdims = false) const;
+        Tensor mul(const std::vector<size_t>& axes, bool keepdims = false) const;
+        Tensor max(const std::vector<size_t>& axes, bool keepdims = false) const;
+        Tensor min(const std::vector<size_t>& axes, bool keepdims = false) const;
+
+        Tensor sum(int axis, bool keepdims = false) const;
+        Tensor mul(int axis, bool keepdims = false) const;
+        Tensor max(int axis, bool keepdims = false) const;
+        Tensor min(int axis, bool keepdims = false) const;
+
+        // Add inplace versions
     };
     
 
