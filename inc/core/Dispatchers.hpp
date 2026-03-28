@@ -182,12 +182,18 @@ namespace tensor::ops
 
     template <typename Op, typename... Args>
     TensorImpl dispatch_reduction(TensorImpl& tensor,
-        const std::optional<std::vector<size_t>> axes,
+        const std::vector<size_t> axes,
         bool keepdims, Args&&... args)
     {
         TensorIterator iter;
         iter.add_input(&tensor);
-        iter.set_reduction_axes(std::move(axes));
+
+        if(axes.empty()) {
+            iter.set_reduction_axes(std::nullopt);
+        } else {
+            iter.set_reduction_axes(std::move(axes));
+        }
+
         iter.set_keepdims(keepdims);
         iter.build<Op>();
 
@@ -196,15 +202,16 @@ namespace tensor::ops
         return *iter.get_outputs()[0];
     }
 
-    // Inplace reduction to a provided output tensor
+    // TODO: understand how to implement the inplace version. The metadata, and possibly the whole implementation of 
+    // the tensor must be changed
     template <typename Op, typename... Args>
-    void dispatch_reduction_inplace(TensorImpl& out, TensorImpl& in,
+    void dispatch_reduction_inplace(TensorImpl& tensor,
         const std::optional<std::vector<size_t>> axes,
         bool keepdims, Args&&... args)
     {
         TensorIterator iter;
-        iter.add_input(&in);
-        iter.add_output(&out);
+        iter.add_input(&tensor);
+        iter.add_output(&tensor);
         iter.set_reduction_axes(std::move(axes));
         iter.set_keepdims(keepdims);
         iter.set_inplace(true);
