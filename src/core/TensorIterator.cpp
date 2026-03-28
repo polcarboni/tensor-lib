@@ -603,25 +603,25 @@ namespace tensor
                                                 ") does not match shape rank (" +
                                                 std::to_string(output_strides.size()) + ")");
                     }
-
+                    
+                    // Soft check: control if computed strides are different from original output strides
+                    // TODO: change the name of the variable (computed_stride is the computed stride for the output) 
+                    // but is too confusing
+                    for (size_t dim = 0; dim < computed_stride.size(); ++dim) {
+                        if (output_strides[dim] != computed_stride[dim]) {
+                            std::cerr << "[TensorIterator] warning: output[" << i
+                                        << "] stride mismatch at dim " << dim
+                                        << ": existing=" << output_strides[dim]
+                                        << ", computed=" << computed_stride[dim]
+                                        << " — substituting computed strides\n";
+                            break;   
+                        }
+                    }
+                    outputs_[i]->set_strides(computed_stride);
                 } else {
-                    // SKIP FOR NOW REUQIRE SOME CHANGES
+                    // SKIP FOR NOW REQUIRE SOME CHANGES
                 }
                 
-                // Soft check: control if computed strides are different from original output strides
-                // TODO: change the name of the variable (computed_stride is the computed stride for the output) 
-                // but is too confusing
-                for (size_t dim = 0; dim < computed_stride.size(); ++dim) {
-                    if (output_strides[dim] != computed_stride[dim]) {
-                        std::cerr << "[TensorIterator] warning: output[" << i
-                                    << "] stride mismatch at dim " << dim
-                                    << ": existing=" << output_strides[dim]
-                                    << ", computed=" << computed_stride[dim]
-                                    << " — substituting computed strides\n";
-                        break;   
-                    }
-                }
-                outputs_[i]->set_strides(computed_stride);
             }
         }
 
@@ -1172,16 +1172,7 @@ namespace tensor
 
     size_t TensorIterator::get_ndim()  const { return ndim_; }
     size_t TensorIterator::get_numel() const { return numel_; }
-
-    const std::vector<size_t>& TensorIterator::get_shape() const
-    {
-        if (broadcasted_shapes_.empty()) {
-            static const std::vector<size_t> empty_shape{};
-            return empty_shape;
-        }
-        return broadcasted_shapes_[0];
-    }
-
+    const std::vector<size_t>& TensorIterator::get_shape() const { return shape_; }
 
     const std::vector<size_t>& TensorIterator::get_strides(int arg_idx) const
     {
@@ -1198,18 +1189,26 @@ namespace tensor
     template <typename Op>
     size_t TensorIterator::compute_numel_(const std::vector<std::vector<size_t>>& broadcasted_strides) {
         
+        /**
+         * TODO: missing logic for the backward version.
+         * TODO: fix unconsistent approach (use of strides and shapes). Requires fixing shapes first. 
+         */
+
         auto shape_numel = [](const std::vector<size_t>& shape) -> size_t {
             return std::accumulate(shape.begin(), shape.end(), size_t(1), std::multiplies<size_t>{});
         };
 
         if constexpr (Op::iter_kind() == IterationKind::ELEMENT_WISE ||
-                      Op::iter_kind() == IterationKind::COPY         ||
-                      Op::iter_kind() == IterationKind::REDUCTION) {
+                      Op::iter_kind() == IterationKind::COPY) {
             
             // Check: the number of elements is based on teh shape of the output.
             // each element of the output is computed by an operation (an element).
             
             return shape_numel(broadcasted_shapes_[0]);
+        }
+
+        else if constexpr (Op::iter_kind() == IterationKind::REDUCTION) {
+            return shape_numel(inputs_[0]->get_shape());
         }
         
         else if constexpr (Op::iter_kind() == IterationKind::MATMUL) {
@@ -1243,7 +1242,32 @@ namespace tensor
             throw std::runtime_error("compute_ndim_: not implemented for MATMUL");
         }
     }
+        
+    template <typename Op>
+    std::vector<size_t> TensorIterator::compute_shape_() {
+        
+        if constexpr(Op::iter_kind() == IterationKind::ELEMENT_WISE ||
+                     Op::iter_kind() == IterationKind::COPY) {
+            
+            if (broadcasted_shapes_.empty()) {
+                static const std::vector<size_t> empty_shape{};
+                return empty_shape;
+            }
 
+            return broadcasted_shapes_[0];
+        }
+
+        if constexpr(Op::iter_kind() == IterationKind::REDUCTION) {
+            return inputs_[0]->get_shape();
+        }
+
+        if constexpr(Op::iter_kind() == IterationKind::MATMUL) {
+            throw std::runtime_error("Compute_shape_ non implemented for matmul");
+        }
+
+
+    }
+    
     // -------------------------------------------------------------------------------------------------------------  
     //                                                DISPATCHER INTERFACES
     // ------------------------------------------------------------------------------------------------------------- 
@@ -1279,10 +1303,12 @@ namespace tensor
             if (outputs_.size() > 1) {
                 throw std::runtime_error("Forward operation expects at most 1 output");
             }
+            
+            shape_ = compute_shape_<Op>();
 
             if (Op::iter_kind() == IterationKind::REDUCTION) {
                 is_reduced_dim_   = compute_is_reduced_dim_(reduction_axes_, inputs_[0]->get_strides().size()); 
-                num_reduced_axes_ = count_num_reduced_axes_(inputs_[0]);
+                num_reduced_axes_ = count_num_reduced_axes_(inputs_[0]);             
             }
 
 
@@ -1403,8 +1429,10 @@ namespace tensor
         template size_t                                                             \
         TensorIterator::compute_numel_<::tensor::ops::Op>(                          \
             const std::vector<std::vector<size_t>>& broadcasted_strides             \
-        );
-
+        );                                                                          \
+        template std::vector<size_t>                                                \
+        TensorIterator::compute_shape_<::tensor::ops::Op>();
+    
     FOR_EACH_OP(INSTANTIATE_OP)
 
     #undef INSTANTIATE_T

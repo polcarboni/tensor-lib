@@ -37,6 +37,7 @@ namespace tensor
         
         size_t numel_;                                                  /* Number of elements of the iterator space */
         size_t ndim_;                                                   /* Rank of the iterator space */
+        std::vector<size_t> shape_;                                     /* Shape of the iterator space */
 
 
         // -------- Scalar operations data members -------- 
@@ -229,6 +230,9 @@ namespace tensor
          */
         template <typename Op>
         size_t compute_ndim_(const std::vector<std::vector<size_t>>& broadcasted_strides);
+        
+        template <typename Op>
+        std::vector<size_t> compute_shape_();
         
 
 
