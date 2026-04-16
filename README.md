@@ -14,6 +14,7 @@
 
 **Note**: This project is not intendend for production use,
 it supports only single GPU usage (sharding is not supported).
+<br />
 
 ## Requirements
 
@@ -21,7 +22,7 @@ it supports only single GPU usage (sharding is not supported).
 + **C++ Compiler:** Supporting C++17 standard
 + **CUDA Toolkit:** 12.0.140 (optional, required for CUDA support)
 + **Catch2 (v3.12.0):** Unit testing framework (automatically fetched via FetchContent)
-\
+<br />
 
 ## Build Configuration
 
@@ -38,7 +39,7 @@ All of these featrues can be enabled/disabled via CMake options (all ON by defau
 + `ENABLE_CLANG_TIDY`: Enable static analysis
 + `ENABLE_CUDA`: Enable `NVIDIA CUDA` support (auto-disabled if CUDA compiler is not found)
 + *`ENABLE_SIMD`: Enable `AVX2 SIMD` Optimization (auto-disabled if not supported, still unused for implementations)*
-\
+<br />
 
 ## Architectural overview
 
