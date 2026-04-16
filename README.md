@@ -9,25 +9,17 @@ tensor-lib is a custom implementation of a tensor operation library based on ATe
 + **Visualization utilities**: Printing utility functions for visualization of tensor values and metadata.
 
 
-### Purpose
 
-This project serve as a learning ptoject to deepen my understanding and practice in:
-+ Tensor operation libraries
-+ C++ and CUDA programming language
-+ Software architecture and cross compiler builds
-+ good coding practices 
+This project serve as a learning project to improve my understanding and practice in: Tensor operation libraries, C++ and CUDA programming languages, Software architecture and cross compiler builds, Coding best practices
 
 **Note**: This is not intendend for production use.
 Single GPU support only (sharding is not supported).
 
 ## Requirements
 
-### Build dependencies:
 + **CMake:** 3.22 or later
 + **C++ Compiler:** Supporting C++17 standard
 + **CUDA Toolkit:** 12.0.140 (optional, required for CUDA support)
-
-### External libraries
 + **Catch2 (v3.12.0):** Unit testing framework (automatically fetched via FetchContent)
 
 
@@ -39,7 +31,7 @@ Single GPU support only (sharding is not supported).
 + **Release flags:** -O3
 
 
-## Optional Features
+### Optional Features
 
 All of these featrues can be enabled/disabled via CMake options (all ON by default):
 + `ENABLE_TESTING`: Build unit tests with Catch2
@@ -48,7 +40,7 @@ All of these featrues can be enabled/disabled via CMake options (all ON by defau
 + `ENABLE_SIMD`: Enable AVX2 SIMD Optimization (auto-disabled if not supported, still unused for implementations)
 
 
-## Architecture overview
+## Architectural overview
 
 + Storage Model
 + Dispatch system
@@ -70,7 +62,7 @@ For details refer to: docs/architecture.md
 + Unary operations
 + ...
 
-For details refer to: docs/api.md
+For details refer to: [docs/api.md](docs/api.md)
 
 ## API use examples
 
@@ -90,9 +82,9 @@ int main() {
     Tensor sum = a.add(b);
     std::cout << sum << "\n";
 }
-
 ```
-For further examples see the app/ directory.
+
+For further examples see the [app/ directory](app/).
 
 
 ## Testing
@@ -104,7 +96,7 @@ HOW TO RUN TESTS
 ```
 
 
-### Further things to be implemented:
+### Planned features:
 + Operations: Matrix Multiplication, Reduction (CUDA backend).
 + Classical ML algorithms.
 + Autograd engine.
