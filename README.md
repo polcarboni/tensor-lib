@@ -1,18 +1,76 @@
 # tensor-lib
 tensor-lib is a custom implementation of a tensor operation library based on ATen/Pytorch.
 
-Relevant features:
-+ Type promotions in multiple operand oerations. Supported types: Bool, Int32, Int64, Float32, Float64 (Double).
-+ Support of different backends architectrues: CPU, CUDA. (With extensible dispatch system).
-+ Support of broadcasting for operations between different shaped tensors.
-+ Implementation of the most relevant and used tensor operations.
+### Relevant features:
++ **Type promotion**: Support for automatic type promotion in multi-operand operations. Supported types: Bool, Int32, Int64, Float32, Float64 (Double).
++ **Multi-Backend Support**: Support of different backends architectrues: CPU, CUDA. (With extensible dispatch system).
++ **Broadcasting**: Support of broadcasting for operations between different shaped tensors.
++ **Tensor Operations**: Implementation of the most relevant and used tensor operations.
++ **Visualization utilities**: Printing utility functions for visualization of tensor values and metadata.
 
 
-This library serves the purposes of deepen my understanding and practice of: Tensor operation libraries, C++ and CUDA programming language, Software architecture and cross compiler builds, good coding practices (without intentions of making it production ready). 
+### Purpose
 
-### Build configuration:
-+ C++17
-+ CUDAToolkit: 12.0.140
+This project serve as a learning ptoject to deepen my understanding and practice in:
++ Tensor operation libraries
++ C++ and CUDA programming language
++ Software architecture and cross compiler builds
++ good coding practices 
+
+**Note**: This is not intendend for production use.
+Single GPU support only (sharding is not supported).
+
+## Requirements
+
+### Build dependencies:
++ **CMake:** 3.22 or later
++ **C++ Compiler:** Supporting C++17 standard
++ **CUDA Toolkit:** 12.0.140 (optional, required for CUDA support)
+
+### External libraries
++ **Catch2 (v3.12.0):** Unit testing framework (automatically fetched via FetchContent)
+
+
+## Build Configuration
+
+### Compiler Settings
++ **C++ Standard:** C++17
++ **Debug flags:** -g3 -O0 -fno-omit-frame-pointer
++ **Release flags:** -O3
+
+
+## Optional Features
+
+All of these featrues can be enabled/disabled via CMake options (all ON by default):
++ `ENABLE_TESTING`: Build unit tests with Catch2
++ `ENABLE_CLANG_TIDY`: Enable static analysis
++ `ENABLE_CUDA`: Enable NVIDIA CUDA support (auto-disabled if CUDA copmiler not found)
++ `ENABLE_SIMD`: Enable AVX2 SIMD Optimization (auto-disabled if not supported, still unused for implementations)
+
+
+## Architecture overview
+
++ Storage Model
++ Dispatch system
++ Kernel abstraction
++ Memory mangement ?
+
+For details refer to: docs/architecture.md
+
+## API Documentation
+
+#### Core classes
++ Tensor
++ TensorImpl
++ TensorIterator
+
+#### Key methods
++ Creation
++ Filling
++ Unary operations
++ ...
+
+For details refer to: docs/api.md
 
 ## API use examples
 
@@ -32,7 +90,19 @@ int main() {
     Tensor sum = a.add(b);
     std::cout << sum << "\n";
 }
+
 ```
+For further examples see the app/ directory.
+
+
+## Testing
+
+Test suite is under construction, only base classes currently have tests. 
+
+```
+HOW TO RUN TESTS
+```
+
 
 ### Further things to be implemented:
 + Operations: Matrix Multiplication, Reduction (CUDA backend).
@@ -40,3 +110,5 @@ int main() {
 + Autograd engine.
 + Deep Learning architectures.  
 + Python bindings.
+
+
