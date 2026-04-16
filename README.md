@@ -1,5 +1,6 @@
 # tensor-lib
 `tensor-lib` is a custom implementation of a tensor operation library based ATen/Pytorch.
+<br />
 
 ### Relevant features:
 + **Type promotion**: Support for automatic type promotion in multi-operand operations. Supported types: `Bool`, `Int32`, `Int64`, `Float32`, `Float64`.
@@ -14,6 +15,7 @@
 
 **Note**: This project is not intendend for production use,
 it supports only single GPU usage (sharding is not supported).
+
 <br />
 
 ## Requirements
@@ -88,7 +90,7 @@ int main() {
 ```
 
 For further examples see the [app/](app/) directory.
-
+<br />
 
 ## Testing
 
