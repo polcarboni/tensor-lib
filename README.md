@@ -68,7 +68,7 @@ The main components/classes of the library are:
 Operations are separately defined for the different backend (CPU, CUDA).
 
 For details refer to: [docs/architecture.md](docs/architecture.md)
-
+<br />
 
 ## API use examples
 
@@ -110,7 +110,7 @@ ctest --output-on-failure
 ```
 <br />
 
-### Planned features:
+## Planned features:
 + **Operations:** Matrix Multiplication, Reduction (CUDA backend).
 + **Classical ML:** Implementation of standard ML algorithms.
 + **Autograd:** Implementation of the automatic differentiation engine.
