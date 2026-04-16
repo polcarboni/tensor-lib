@@ -1,5 +1,6 @@
 # tensor-lib
 `tensor-lib` is a custom implementation of a tensor operation library based ATen/Pytorch.
+
 <br />
 
 ### Relevant features:
@@ -51,7 +52,7 @@ The main components/classes of the library are:
 + **Types:** define allowed numerical types and utility functions. 
 + **Storage:** contains the actual data (used as shared_ptr by the tensorImpl class)
 + **Allocator:** allocates/deallocates memory based on the selected backend device type.
-+ **TensorImpl:** contains pointer to data and metadata (shape, strides, dtype, ...) for the Tensor objects.
++ **TensorImpl:** contains pointer to data and metadata (`shape`, `strides`, `dtype`, ...) for the Tensor objects.
 + **Dispatchers:** called by the operation methods, initializes the iterator and calls the kernels
 + **TensorIterator:** definition of the operation logic.
 + **Tensor:** public facing API class.
@@ -90,6 +91,7 @@ int main() {
 ```
 
 For further examples see the [app/](app/) directory.
+
 <br />
 
 ## Testing
@@ -106,6 +108,7 @@ For running tests manually:
 cd build/release
 ctest --output-on-failure
 ```
+<br />
 
 ### Planned features:
 + **Operations:** Matrix Multiplication, Reduction (CUDA backend).
