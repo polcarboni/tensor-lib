@@ -12,8 +12,8 @@
 
 **Purpose:** *This project serve as a learning tool to improve my understanding and practice in: Tensor operation libraries, C++ and CUDA programming languages, Software architecture and cross-compiler builds, Coding best practices.*
 
-**Note**: This project is not intendend for production use.
-Single GPU support only (sharding is not supported).
+**Note**: This project is not intendend for production use,
+it supports only single GPU usage (sharding is not supported).
 
 ## Requirements
 
@@ -21,7 +21,7 @@ Single GPU support only (sharding is not supported).
 + **C++ Compiler:** Supporting C++17 standard
 + **CUDA Toolkit:** 12.0.140 (optional, required for CUDA support)
 + **Catch2 (v3.12.0):** Unit testing framework (automatically fetched via FetchContent)
-
+\
 
 ## Build Configuration
 
@@ -36,9 +36,9 @@ Single GPU support only (sharding is not supported).
 All of these featrues can be enabled/disabled via CMake options (all ON by default):
 + `ENABLE_TESTING`: Build unit tests with Catch2
 + `ENABLE_CLANG_TIDY`: Enable static analysis
-+ `ENABLE_CUDA`: Enable NVIDIA CUDA support (auto-disabled if CUDA copmiler not found)
-+ `ENABLE_SIMD`: Enable AVX2 SIMD Optimization (auto-disabled if not supported, still unused for implementations)
-
++ `ENABLE_CUDA`: Enable `NVIDIA CUDA` support (auto-disabled if CUDA compiler is not found)
++ *`ENABLE_SIMD`: Enable `AVX2 SIMD` Optimization (auto-disabled if not supported, still unused for implementations)*
+\
 
 ## Architectural overview
 
@@ -53,6 +53,7 @@ The main components/classes of the library are:
 + **TensorIterator:** definition of the operation logic.
 + **Tensor:** public facing API class.
 
+
 #### Operation classes:
 + FillStorage operations
 + Unary operations
@@ -64,20 +65,6 @@ Operations are separately defined for the different backend (CPU, CUDA).
 
 For details refer to: [docs/architecture.md](docs/architecture.md)
 
-## API Documentation
-
-#### Core classes
-+ Tensor
-+ TensorImpl
-+ TensorIterator
-
-#### Key methods
-+ Creation
-+ Filling
-+ Unary operations
-+ ...
-
-<!-- For details refer to: [docs/api.md](docs/api.md) -->
 
 ## API use examples
 
