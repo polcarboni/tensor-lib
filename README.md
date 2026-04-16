@@ -1,18 +1,18 @@
 # tensor-lib
-tensor-lib is a custom implementation of a tensor operation library based on ATen/Pytorch.
+`tensor-lib` is a custom implementation of a tensor operation library based ATen/Pytorch.
 
 ### Relevant features:
-+ **Type promotion**: Support for automatic type promotion in multi-operand operations. Supported types: Bool, Int32, Int64, Float32, Float64 (Double).
-+ **Multi-Backend Support**: Support of different backends architectrues: CPU, CUDA. (With extensible dispatch system).
-+ **Broadcasting**: Support of broadcasting for operations between different shaped tensors.
++ **Type promotion**: Support for automatic type promotion in multi-operand operations. Supported types: `Bool`, `Int32`, `Int64`, `Float32`, `Float64`.
++ **Multi-Backend Support**: Support of different backend architectures: `CPU`, `CUDA`. (extensible dispatch system).
++ **Broadcasting**: Support of broadcasting logic for operations between different shaped tensors.
 + **Tensor Operations**: Implementation of the most relevant and used tensor operations.
 + **Visualization utilities**: Printing utility functions for visualization of tensor values and metadata.
 
 
 
-This project serve as a learning project to improve my understanding and practice in: Tensor operation libraries, C++ and CUDA programming languages, Software architecture and cross compiler builds, Coding best practices
+**Purpose:** *This project serve as a learning tool to improve my understanding and practice in: Tensor operation libraries, C++ and CUDA programming languages, Software architecture and cross-compiler builds, Coding best practices.*
 
-**Note**: This is not intendend for production use.
+**Note**: This project is not intendend for production use.
 Single GPU support only (sharding is not supported).
 
 ## Requirements
@@ -26,9 +26,9 @@ Single GPU support only (sharding is not supported).
 ## Build Configuration
 
 ### Compiler Settings
-+ **C++ Standard:** C++17
-+ **Debug flags:** -g3 -O0 -fno-omit-frame-pointer
-+ **Release flags:** -O3
++ **C++ Standard:** `C++17`
++ **Debug flags:** `-g3 -O0 -fno-omit-frame-pointer`
++ **Release flags:** `-O3`
 
 
 ### Optional Features
@@ -42,12 +42,27 @@ All of these featrues can be enabled/disabled via CMake options (all ON by defau
 
 ## Architectural overview
 
-+ Storage Model
-+ Dispatch system
-+ Kernel abstraction
-+ Memory mangement ?
+The main components/classes of the library are: 
 
-For details refer to: docs/architecture.md
+#### Core classes:
++ **Types:** define allowed numerical types and utility functions. 
++ **Storage:** contains the actual data (used as shared_ptr by the tensorImpl class)
++ **Allocator:** allocates/deallocates memory based on the selected backend device type.
++ **TensorImpl:** contains pointer to data and metadata (shape, strides, dtype, ...) for the Tensor objects.
++ **Dispatchers:** called by the operation methods, initializes the iterator and calls the kernels
++ **TensorIterator:** definition of the operation logic.
++ **Tensor:** public facing API class.
+
+#### Operation classes:
++ FillStorage operations
++ Unary operations
++ Binary operations
++ Reduction operations
++ *MatMul operations (to be implemented).*
+
+Operations are separately defined for the different backend (CPU, CUDA).
+
+For details refer to: [docs/architecture.md](docs/architecture.md)
 
 ## API Documentation
 
@@ -62,7 +77,7 @@ For details refer to: docs/architecture.md
 + Unary operations
 + ...
 
-For details refer to: [docs/api.md](docs/api.md)
+<!-- For details refer to: [docs/api.md](docs/api.md) -->
 
 ## API use examples
 
@@ -84,23 +99,29 @@ int main() {
 }
 ```
 
-For further examples see the [app/ directory](app/).
+For further examples see the [app/](app/) directory.
 
 
 ## Testing
 
-Test suite is under construction, only base classes currently have tests. 
+Test suite is *under construction*, only base classes currently have tests. 
 
-```
-HOW TO RUN TESTS
+To run all currently defined tests:
+```bash
+make core_unit_tests
 ```
 
+For running tests manually:
+```bash
+cd build/release
+ctest --output-on-failure
+```
 
 ### Planned features:
-+ Operations: Matrix Multiplication, Reduction (CUDA backend).
-+ Classical ML algorithms.
-+ Autograd engine.
-+ Deep Learning architectures.  
-+ Python bindings.
++ **Operations:** Matrix Multiplication, Reduction (CUDA backend).
++ **Classical ML:** Implementation of standard ML algorithms.
++ **Autograd:** Implementation of the automatic differentiation engine.
++ **Deep Learning:** Implementation of classes and DL Architectures.  
++ **Python bindings**
 
 
