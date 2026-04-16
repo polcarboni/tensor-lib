@@ -67,7 +67,7 @@ The main components/classes of the library are:
 
 Operations are separately defined for the different backend (CPU, CUDA).
 
-For details refer to: [docs/architecture.md](docs/architecture.md)
+<!-- For details refer to: [docs/architecture.md](docs/architecture.md) -->
 
 <br />
 
@@ -117,5 +117,3 @@ ctest --output-on-failure
 + **Autograd:** Implementation of the automatic differentiation engine.
 + **Deep Learning:** Implementation of classes and DL Architectures.  
 + **Python bindings**
-
-
