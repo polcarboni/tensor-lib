@@ -68,6 +68,7 @@ The main components/classes of the library are:
 Operations are separately defined for the different backend (CPU, CUDA).
 
 For details refer to: [docs/architecture.md](docs/architecture.md)
+
 <br />
 
 ## API use examples
