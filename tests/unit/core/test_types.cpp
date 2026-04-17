@@ -80,8 +80,7 @@ TEST_CASE("ScalarType helper functions", "[scalar_type]")
         check_stream(ScalarType::Int64,   "Int64");
         check_stream(ScalarType::Int32,   "Int32");
         check_stream(ScalarType::Bool,    "Bool");
-
-        CHECK_THROWS_AS(to_string(ScalarType::EMPTY), std::invalid_argument);
+        check_stream(ScalarType::EMPTY,   "EMPTY");
     }
 
     SECTION("get_scalar_type")
@@ -127,6 +126,7 @@ TEST_CASE("Device and DeviceType", "[device]")
     {
         CHECK(to_string(DeviceType::CPU)  == "CPU");
         CHECK(to_string(DeviceType::CUDA) == "CUDA");
+        CHECK_THROWS(to_string(DeviceType::UNKNOWN));
     }
 
     SECTION("DeviceType ostream operator")
@@ -138,6 +138,8 @@ TEST_CASE("Device and DeviceType", "[device]")
         ss.str("");
         ss << DeviceType::CUDA;
         CHECK(ss.str() == "CUDA");
+
+        CHECK_THROWS(ss << DeviceType::UNKNOWN);
     }
 
     SECTION("Device default construction")
@@ -153,32 +155,43 @@ TEST_CASE("Device and DeviceType", "[device]")
         Device cpu1{DeviceType::CPU,  1};
         Device cuda0{DeviceType::CUDA, 0};
         Device cuda1{DeviceType::CUDA, 1};
+        Device unknown0{DeviceType::UNKNOWN, 0};
+        Device unknown1{DeviceType::UNKNOWN, 1};
 
         // Equal to itself
-        CHECK(cpu0  == cpu0);
-        CHECK(cuda0 == cuda0);
+        CHECK(cpu0    == cpu0);
+        CHECK(cuda0   == cuda0);
+        CHECK(unknown0 == unknown0);
 
         // Same type, same index
-        CHECK(Device{DeviceType::CPU, 0} == cpu0);
+        CHECK(Device{DeviceType::CPU,     0} == cpu0);
+        CHECK(Device{DeviceType::UNKNOWN, 0} == unknown0);
 
         // Same type, different index
-        CHECK(cpu0  != cpu1);
-        CHECK(cuda0 != cuda1);
+        CHECK(cpu0     != cpu1);
+        CHECK(cuda0    != cuda1);
+        CHECK(unknown0 != unknown1);
 
         // Different type, same index
-        CHECK(cpu0  != cuda0);
+        CHECK(cpu0     != cuda0);
+        CHECK(cpu0     != unknown0);
+        CHECK(cuda0    != unknown0);
 
         // Different type, different index
-        CHECK(cpu1  != cuda0);
+        CHECK(cpu1     != cuda0);
+        CHECK(cpu1     != unknown0);
+        CHECK(cuda1    != unknown0);
     }
 
     SECTION("Device to_string and ostream operator")
     {
-        Device cpu{DeviceType::CPU, 0};
-        Device cuda{DeviceType::CUDA, 0};
+        Device cpu{DeviceType::CPU,     0};
+        Device cuda{DeviceType::CUDA,   0};
+        Device unknown{DeviceType::UNKNOWN, 0};
 
         CHECK(to_string(cpu)  == "CPU");
         CHECK(to_string(cuda) == "CUDA");
+        CHECK_THROWS(to_string(unknown));
 
         std::stringstream ss;
         ss << cpu;
@@ -187,5 +200,7 @@ TEST_CASE("Device and DeviceType", "[device]")
         ss.str("");
         ss << cuda;
         CHECK(ss.str() == "CUDA");
+
+        CHECK_THROWS(ss << unknown);
     }
 }
