@@ -32,6 +32,7 @@ namespace tensor
         bool       common_requires_grad_ = false;                       /* true if all tensors require grads */
 
         std::vector<std::vector<size_t>> broadcasted_shapes_;           /* SHOULD have both inputs and outputs shapes*/
+        std::vector<std::vector<size_t>> all_broadcasted_shapes_;           
         std::vector<std::vector<size_t>> broadcasted_strides_;          /* iterator space strides */
         bool is_broadcasted_ = false;                                   /* if non active the operation has not used broadcast and can use fast path */
         
@@ -121,6 +122,9 @@ namespace tensor
         
         template <typename Op>
         void check_shapes_copy_();
+
+        void validate_output_shapes_(std::vector<std::vector<size_t>>& output_shapes,
+                                     std::vector<std::vector<size_t>>& computed_shapes);
 
 
         // -------------------------------------------------- STRIDES BROADCASTING --------------------------------------------------
@@ -315,10 +319,23 @@ namespace tensor
          */
         size_t get_numel() const;
 
+
+        /**
+         * FIX:
+         * Patched since the shapes required for the matmul are more than one.
+         * This should and might be a single api. The sceond one provide all shapes
+         * and leave the user to decide which one is correct for the implementation of the 
+         */
+
         /**
          * Return the shape of the iteration space
          */
         const std::vector<size_t>& get_shape() const;
+
+        /**
+         * Return the shapes of the iteration space
+         */
+        const std::vector<std::vector<size_t>>& get_shapes() const;
 
         /**
          * Returns the strides of a specific operand (input or output).

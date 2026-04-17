@@ -226,10 +226,12 @@ namespace tensor
      * Checks the correct use of inline operations by validating the shape computed by the broadcasting
      * again the provided output shape tensors.
      */
-    void validate_output_shapes_(std::vector<std::vector<size_t>>& output_shapes,
-                                 std::vector<std::vector<size_t>>& computed_shapes)
+    void TensorIterator::validate_output_shapes_(std::vector<std::vector<size_t>>& output_shapes,
+                                                 std::vector<std::vector<size_t>>& computed_shapes)
     {
-        if (computed_shapes.size() != output_shapes.size()) {
+        const size_t out_offset = inputs_.size();
+
+        if (computed_shapes.size() - out_offset != output_shapes.size()) {
             throw std::runtime_error("TensorIterator: number of computed output shapes (" +
                                         std::to_string(computed_shapes.size()) +
                                         ") does not match number of outputs (" +
@@ -239,8 +241,8 @@ namespace tensor
 
         for (size_t i = 0; i < output_shapes.size(); ++i) {
 
-            const auto& output_shape = output_shapes[i];
-            const auto& computed_shape = computed_shapes[i];
+            const auto& output_shape   = output_shapes[i];
+            const auto& computed_shape = computed_shapes[out_offset + i];
 
             if (output_shape.size() != computed_shape.size()) {
                 throw std::runtime_error("TensorIterator: output[" + std::to_string(i) +
@@ -274,7 +276,7 @@ namespace tensor
         
         // =================================== OUTPUT SHAPES VALIDATION ===================================
         // TODO: also check the inplace_ data member? remove the data member?
-        
+
         if constexpr (Op::iter_kind() != IterationKind::COPY) {
             if (!outputs_.empty()) {
                 validate_output_shapes_(output_shapes_, computed_shapes);
@@ -288,8 +290,6 @@ namespace tensor
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_elementwise_()
     {
         std::vector<std::vector<size_t>> computed_shapes;
-        computed_shapes.resize(Op::num_outputs());
-        
         is_broadcasted_ = false;
         
         // ============================ FORWARD BROADCASTING ============================
@@ -297,6 +297,7 @@ namespace tensor
         if (Op::get_direction() == Direction::FORWARD) {
 
             // ------------------------ SCALAR OPERATIONS ------------------------
+            // WRONG: DOES NOT HAVE THE INPUTS
             if (scalar_) {
                 is_broadcasted_ = true;
                 computed_shapes[0] = inputs_[0]->get_shape();
@@ -313,10 +314,15 @@ namespace tensor
                 }
             }
 
+            // Populate input shapes
+            for (const auto& input : inputs_) {
+                computed_shapes.push_back(input->get_shape());
+            }
+
             // ---------------------- fast path 1: single operand ----------------------
             
             if (inputs_.size() == 1) {
-                computed_shapes[0] = inputs_[0]->get_shape();
+                computed_shapes.push_back(inputs_[0]->get_shape());
                 return computed_shapes;
                 
             }
@@ -334,7 +340,7 @@ namespace tensor
             }
             
             if (!is_broadcasted_) {
-                computed_shapes[0] = first_shape;
+                computed_shapes.push_back(first_shape);
                 return computed_shapes;
             }
                         
@@ -370,7 +376,7 @@ namespace tensor
                 }
             }
 
-            computed_shapes[0] = output_shape;
+            computed_shapes.push_back(output_shape);
         }
 
         // ============================ BACKWARD BROADCASTING ============================
@@ -400,8 +406,7 @@ namespace tensor
          */
 
         std::vector<std::vector<size_t>> computed_shapes;
-        computed_shapes.resize(Op::num_outputs());
-
+       
         // ============================ FORWARD BROADCASTING ============================
 
         if (Op::get_direction() == Direction::FORWARD) {
@@ -414,9 +419,11 @@ namespace tensor
             auto input_shape = input->get_shape();
             auto input_rank  = input_shape.size();
 
+            computed_shapes.push_back(input_shape);
+
             // TODO: This condition is too redundant and should depend only on one of these (not wrong tho)
             if (!reduction_axes_ || (*reduction_axes_).empty() || num_reduced_axes_ == input_rank) {
-                computed_shapes[0] = std::vector<size_t>{1};
+                computed_shapes.push_back(std::vector<size_t>{1});
                 return computed_shapes;
             }
 
@@ -441,7 +448,7 @@ namespace tensor
                 }
             }
 
-            computed_shapes[0] = output_shape;
+            computed_shapes.push_back(output_shape);
         }
 
         // ============================ BACKWARD BROADCASTING ============================
@@ -457,8 +464,6 @@ namespace tensor
     std::vector<std::vector<size_t>> TensorIterator::broadcast_shapes_matmul_()
     {
         std::vector<std::vector<size_t>> computed_shapes;
-        computed_shapes.resize(outputs_.size());
-
 
         // ============================ FORWARD BROADCASTING ============================
 
@@ -1267,6 +1272,11 @@ namespace tensor
 
 
     }
+
+
+    const std::vector<std::vector<size_t>>& TensorIterator::get_shapes() const {
+        return broadcasted_shapes_;
+    }
     
     // -------------------------------------------------------------------------------------------------------------  
     //                                                DISPATCHER INTERFACES
@@ -1325,13 +1335,10 @@ namespace tensor
                 }
                 common_dtype_ = cast_type;
             }
-            
-            // THIS MUST BE CHANGED: all shapes (I/O) should be in broadcasted_shapes_
-            // and using the templated Op::num_outputs() to get the output_shapes correctly.
 
             broadcasted_shapes_ = broadcast_shapes_<Op>();
-            output_shapes_      = broadcasted_shapes_;
-            
+            output_shapes_ = {broadcasted_shapes_.begin() + inputs_.size(), broadcasted_shapes_.end()};
+
             // Create the synthesized output for operations that support lazy initialization
             if (outputs_.empty()) {
                 outputs_.resize(1, nullptr);
