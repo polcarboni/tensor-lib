@@ -20,5 +20,17 @@ namespace tensor::ops
     void ReduceSum::cuda(TensorIterator& iter, cudaStream_t stream) {
         // placeholder
     }
+
+    void ReduceMul::cuda(TensorIterator& iter, cudaStream_t stream) {
+        // placeholder
+    }
+
+    void ReduceMax::cuda(TensorIterator& iter, cudaStream_t stream) {
+        // placeholder
+    }
+
+    void ReduceMin::cuda(TensorIterator& iter, cudaStream_t stream) {
+        // placeholder
+    }
     
 } // namespace tensor::ops
