@@ -278,6 +278,12 @@ namespace tensor
         void max_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
         void min_inplace(const std::vector<size_t>& axes = {}, bool keepdims = false) const;
 
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                           MATMUL OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
+
+        TensorImpl matmul(const TensorImpl& other) const;
     };
 
 

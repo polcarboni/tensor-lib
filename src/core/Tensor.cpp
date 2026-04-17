@@ -486,7 +486,15 @@ namespace tensor
 
     // Add inplace versions
 
+    // ------------------------------------------------------------------------------------------------------
+    //                                         MATMUL OPERATIONS
+    // ------------------------------------------------------------------------------------------------------
 
+    Tensor Tensor::matmul(const Tensor& other) const {
+        Tensor result;
+        result.pimpl_ = std::make_shared<TensorImpl>(pimpl_->matmul(*other.pimpl_));
+        return result;
+    }
 
     // ======================================================================================================
     //                                           FREE FUNCTIONS

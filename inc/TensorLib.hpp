@@ -12,6 +12,7 @@
 #include "ops/BinaryOps.hpp"
 #include "ops/ReductionOps.hpp"
 #include "ops/UnaryOps.hpp"
+#include "ops/MatMulOps.hpp"
 
 // #include "autograd/Node.hpp"
 // #include "autograd/Edge.hpp"

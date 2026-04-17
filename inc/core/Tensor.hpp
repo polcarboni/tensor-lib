@@ -215,6 +215,13 @@ namespace tensor
         Tensor min(int axis, bool keepdims = false) const;
 
         // Add inplace versions
+
+
+        // ------------------------------------------------------------------------------------------------------
+        //                                         MATMUL OPERATIONS
+        // ------------------------------------------------------------------------------------------------------
+
+        Tensor matmul(const Tensor& other) const;
     };
     
 

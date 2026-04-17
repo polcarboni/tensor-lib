@@ -26,7 +26,7 @@ namespace tensor::ops
     };
 
 
-    class MatMul : MatmulOpBase<Direction::FORWARD> {
+    struct MatMul : MatmulOpBase<Direction::FORWARD> {
         static void cpu(TensorIterator& iter);
         static void cuda(TensorIterator& iter, cudaStream_t stream);
     };

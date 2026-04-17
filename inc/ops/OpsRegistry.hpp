@@ -37,9 +37,13 @@
     X(UnaryTanh)             \
     X(UnaryRelu)             
 
+#include "MatMulOps.hpp"
+#define FOR_EACH_MATMUL_OP(X) \
+    X(MatMul)       
 
 #define FOR_EACH_OP(X)          \
     FOR_EACH_FILLSTORAGE_OP(X)  \
     FOR_EACH_BINARY_OP(X)       \
     FOR_EACH_REDUCTION_OP(X)    \
-    FOR_EACH_UNARY_OP(X)
+    FOR_EACH_UNARY_OP(X)        \
+    FOR_EACH_MATMUL_OP(X)
