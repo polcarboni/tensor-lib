@@ -1,7 +1,8 @@
 add_executable(core_unit_tests
     test_types.cpp
     test_tensor.cpp
-    test_allocator.cpp)
+    test_allocator.cpp
+    test_storage.cpp)
 
 target_link_libraries(core_unit_tests
     PRIVATE
