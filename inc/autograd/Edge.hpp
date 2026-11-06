@@ -1,5 +1,6 @@
 #pragma once
 // #include "Node.hpp"
+#include <cstdint>
 #include <memory>
 
 namespace tensor::grad

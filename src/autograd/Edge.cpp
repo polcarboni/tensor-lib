@@ -8,7 +8,7 @@ namespace tensor::grad
 
     }
 
-    Edge::Edge(std::shared_ptr<Node> function, uint32_t ipnut_nr)
+    Edge::Edge(std::shared_ptr<Node> function, uint32_t input_nr)
     {
 
     }
