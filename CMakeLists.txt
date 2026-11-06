@@ -25,13 +25,14 @@ add_compile_options($<$<CONFIG:Debug>:-g3>
 
 if (ENABLE_SIMD)
     include(CheckCXXSourceRuns)
-
+    set(CMAKE_REQUIRED_FLAGS "-mavx2")
     # Feature check for SIMD compiling
     check_cxx_source_runs("
         #include <immintrin.h>
         int main() {
-            __m256__ a = _mm256_set1_ps(1.0f);
-            __m256__ b = _mm256_add_ps(a, a);
+            __m256 a = _mm256_set1_ps(1.0f);
+            __m256 b = _mm256_add_ps(a, a);
+            (void)b;
             return 0;
         }"
         HAS_AVX2
@@ -40,7 +41,7 @@ if (ENABLE_SIMD)
 
     if(HAS_AVX2)
         message(STATUS "AVX2 support detected - SIMD enabled")
-        add_compile_options(-mavx2)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-mavx2>)
         add_compile_definitions(USE_AVX2)
     else()
         message(WARNING "AVX2 not supported on this machine. Disabling SIMD.")
