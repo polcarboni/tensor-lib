@@ -35,7 +35,7 @@ namespace tensor::ops
         
         DISPATCH_ALL_TYPES(dtype, "fill_const", [&]{
             
-            scalar_t val = static_cast<size_t>(value);
+            scalar_t val = static_cast<scalar_t>(value);
             scalar_t* output = iter.output_ptr<scalar_t>(0);
             size_t total_size = iter.get_outputs()[0]->get_total_size();
 
