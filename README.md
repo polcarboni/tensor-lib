@@ -99,16 +99,25 @@ For further examples see the [app/](app/) directory.
 
 Test suite is *under construction*, only base classes currently have tests. 
 
-To run all currently defined tests:
+**Continuous Integration** runs a CPU-Only test suite as Github-hosted runners have no GPU,
+offline testing on a CUDA-capable machine is required.
+
+
+### Running tests locally
+
 ```bash
-make core_unit_tests
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
 ```
 
-For running tests manually:
+To build without CUDA (CPU-only):
+
 ```bash
-cd build/release
-ctest --output-on-failure
+cmake -B build -DENABLE_CUDA=OFF
 ```
+
+To run a subset by label: `ctest --test-dir build -L ops`.
 <br />
 
 ## Planned features:
