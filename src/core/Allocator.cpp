@@ -50,15 +50,13 @@ namespace tensor {
         #endif
     }
 
-    void CUDAAllocator::deallocate(void* p) noexcept
+    void CUDAAllocator::deallocate([[maybe_unused]]void* p) noexcept
     {
         #ifdef USE_CUDA
         if(!p) return;
             cudaError_t err = cudaFree(p);
             if(err != cudaSuccess)
                 std::cerr << "CUDA deallocation failed: " << cudaGetErrorString(err) << std::endl;
-        #else
-            throw std::runtime_error("CUDAAllocator requires CUDA compilation");
         #endif
     }
 
