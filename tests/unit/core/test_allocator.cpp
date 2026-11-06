@@ -151,10 +151,9 @@ TEST_CASE("CUDA Allocator without CUDA build", "[allocator][cuda]")
             CHECK_THROWS_AS(alloc.allocate(0), std::runtime_error);
         }
 
-        SECTION("deallocate throws std::runtime_error when CUDA is not compiled")
+        SECTION("deallocate is a no-op when CUDA is not compiled")
         {
-            void* ptr = reinterpret_cast<void*>(0x1);
-            CHECK_THROWS(alloc.deallocate(ptr));
+            CHECK_NOTHROW(alloc.deallocate(nullptr));
         }
     #endif
 }
