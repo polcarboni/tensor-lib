@@ -1,7 +1,10 @@
 #include "TensorLib.hpp"
 #include <iostream>
 #include <thread>
-#include <cuda_runtime.h>
+
+#ifdef USE_CUDA
+    #include <cuda_runtime.h>
+#endif
 
 #include <string>
 
