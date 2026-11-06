@@ -350,6 +350,7 @@ namespace tensor
         const void* data_ptr = nullptr;
 
         if (tensor.device_.type == DeviceType::CUDA) {
+        #ifdef USE_CUDA
             size_t bytes = tensor.total_size_ * element_size(tensor.dtype_);
             host_buffer.resize(bytes);
 
@@ -359,7 +360,9 @@ namespace tensor
                 throw std::runtime_error(std::string("to_string: CUDA memcpy failed: ") + cudaGetErrorString(err));
             }
             data_ptr = host_buffer.data();
-        
+        #else
+            throw std::runtime_error("to_string: CUDA support not compiled");
+        #endif
         } else {
             data_ptr = tensor.storage_->data();
         }
